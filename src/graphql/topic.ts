@@ -24,6 +24,7 @@ export const typeDefs = gql`
 export const resolvers = {
   Mutation: {
     async createTopic(_, { input }, { pubsub }) {
+      logger.info(`Creating ${input.text} topic`);
       await pubsub.publish(TOPIC_CREATED, {
         topicCreated: input,
       });
@@ -35,6 +36,7 @@ export const resolvers = {
       subscribe: withFilter(
         (parent, args, { pubsub }) => pubsub.asyncIterator([TOPIC_CREATED]),
         (payload, variables) => {
+          logger.info(`Subscribing to topic`);
           return payload.topicCreated.gameId === variables.gameId;
         }
       ),
