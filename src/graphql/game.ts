@@ -19,10 +19,11 @@ export const typeDefs = gql`
   extend type Mutation {
     createGame(user: UserInput!): Game
     addUserToGame(gameId: ID!, user: UserInput!): Game
-    startGame(gameId: ID!): Game
+    # startGame(gameId: ID!): Game
   }
   extend type Subscription {
-    gameStarted(gameId: ID!): Game
+    newUserInGame(gameId: ID!): Game
+    # gameStarted(gameId: ID!): Game
   }
 `;
 
@@ -45,26 +46,26 @@ export const resolvers = {
       );
       return addedUser;
     },
-    async startGame(_, { gameId }, { pubsub }) {
-      const startedGame: Game = await GameModel.findById(gameId);
-      await pubsub.publish(GAME_STARTED, {
-        gameStarted: startedGame,
-      });
-      return startedGame;
-    },
+    // async startGame(_, { gameId }, { pubsub }) {
+    //   const startedGame: Game = await GameModel.findById(gameId);
+    //   await pubsub.publish(GAME_STARTED, {
+    //     gameStarted: startedGame,
+    //   });
+    //   return startedGame;
+    // },
   },
   Subscription: {
-    gameStarted: {
-      subscribe: withFilter(
-        (parent, args, { pubsub }) => pubsub.asyncIterator([GAME_STARTED]),
-        (payload, variables) => {
-          //   logger.info(payload.gameStarted.id);
-          //   logger.info(variables.gameId);
-          //   let toFilter = payload.gameStarted === variables.gameId;
-          //   logger.info(`${toFilter}`);
-          return payload.gameStarted.id === variables.gameId;
-        }
-      ),
-    },
+    // gameStarted: {
+    //   subscribe: withFilter(
+    //     (parent, args, { pubsub }) => pubsub.asyncIterator([GAME_STARTED]),
+    //     (payload, variables) => {
+    //       //   logger.info(payload.gameStarted.id);
+    //       //   logger.info(variables.gameId);
+    //       //   let toFilter = payload.gameStarted === variables.gameId;
+    //       //   logger.info(`${toFilter}`);
+    //       return payload.gameStarted.id === variables.gameId;
+    //     }
+    //   ),
+    // },
   },
 };

@@ -3,6 +3,7 @@ import * as message from "./message";
 import * as topic from "./topic";
 import * as gif from "./gif";
 import * as game from "./game";
+import * as round from "./round";
 import * as graphqlContext from "./context";
 import { merge } from "lodash";
 import { logger } from "../common";
@@ -28,11 +29,13 @@ export const typeDefs = [
   topic.typeDefs,
   gif.typeDefs,
   game.typeDefs,
+  round.typeDefs,
 ];
 export const resolvers = merge(
   message.resolvers,
   topic.resolvers,
   gif.resolvers,
-  game.resolvers
+  game.resolvers,
+  round.resolvers
 );
 export const context = { pubsub };

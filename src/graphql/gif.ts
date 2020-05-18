@@ -7,17 +7,21 @@ const GIF_DELETED = "GIF_DELETED";
 const VOTE_ADDED = "VOTE_ADDED";
 const VOTE_REMOVED = "VOTE_REMOVED";
 
-//Gif Images is actually a huge json, but for simplicity will be stringified
+//gif is actually a big object will be stringified and parsed using String
 export const typeDefs = gql`
   type Gif {
-    id: String!
-    images: String
+    id: String
+    gif: String
     gameId: String!
+    userName: String
+    gifSearchText: String
   }
   input GifInput {
-    id: String!
-    images: String
+    id: String
+    gif: String
     gameId: String!
+    userName: String
+    gifSearchText: String
   }
 
   extend type Mutation {
@@ -40,6 +44,7 @@ export const resolvers = {
       await pubsub.publish(GIF_CREATED, {
         gifCreated: input,
       });
+      logger.info("Gif Submited/Created");
       return input;
     },
     async deleteGif(_, { input }, { pubsub }) {
@@ -52,6 +57,7 @@ export const resolvers = {
       await pubsub.publish(VOTE_ADDED, {
         gifVoteAdded: input,
       });
+      logger.info("Gif Vote Added");
       return input;
     },
     async unvotedForGif(_, { input }, { pubsub }) {
@@ -66,6 +72,7 @@ export const resolvers = {
       subscribe: withFilter(
         (parent, args, { pubsub }) => pubsub.asyncIterator([GIF_CREATED]),
         (payload, variables) => {
+          logger.info("Gif Create subscription started");
           return payload.gifCreated.gameId === variables.gameId;
         }
       ),
@@ -82,6 +89,7 @@ export const resolvers = {
       subscribe: withFilter(
         (parent, args, { pubsub }) => pubsub.asyncIterator([VOTE_ADDED]),
         (payload, variables) => {
+          logger.info("Gif Vote subscription started");
           return payload.gifVoteAdded.gameId === variables.gameId;
         }
       ),
