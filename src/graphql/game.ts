@@ -2,8 +2,9 @@ import { gql } from "apollo-server-express";
 import { PubSub, withFilter } from "apollo-server";
 import { logger } from "../common";
 import { Game, GameModel } from "../models/game";
+import { User } from "../models/user";
 
-const GAME_STARTED = "GAME_STARTED";
+const USED_ADDED_TO_GAME = "USED_ADDED_TO_GAME";
 
 export const typeDefs = gql`
   type User {
@@ -13,12 +14,16 @@ export const typeDefs = gql`
     id: ID!
     users: [User]
   }
-  input UserInput {
+  input AddUserInput {
     name: String!
+    gameId: ID!
+  }
+  extend type Query {
+    getUsers(gameId: ID!): [User]
   }
   extend type Mutation {
-    createGame(user: UserInput!): Game
-    addUserToGame(gameId: ID!, user: UserInput!): Game
+    createGame(userName: String!): Game
+    addUserToGame(input: AddUserInput!): [User]
     # startGame(gameId: ID!): Game
   }
   extend type Subscription {
@@ -28,23 +33,39 @@ export const typeDefs = gql`
 `;
 
 export const resolvers = {
+  Query: {
+    async getUsers(_, { gameId }, { pubsub }) {
+      const game: Game = await GameModel.findById(gameId);
+      return game ? game.users : [];
+    },
+  },
   Mutation: {
-    async createGame(_, { user }, { pubsub }) {
+    async createGame(_, { userName }, { pubsub }) {
       //Add unique game ID
-      logger.info({ user });
+      logger.info(`${userName} is creating a game`);
       const gameModel = new GameModel({
-        users: [user],
+        users: [{ name: userName }],
       });
       const newGame: Game = await gameModel.save();
       return newGame;
     },
-    async addUserToGame(_, { gameId, user }, { pubsub }) {
-      const addedUser: Game = await GameModel.findOneAndUpdate(
-        gameId,
-        { $push: { users: user } },
-        { new: true }
+    async addUserToGame(_, { input }, { pubsub }) {
+      const game: Game = await GameModel.findOneAndUpdate(
+        input.gameId,
+        {
+          $push: {
+            users: { name: input.name },
+          },
+        },
+        {
+          new: true,
+        }
       );
-      return addedUser;
+      await pubsub.publish(USED_ADDED_TO_GAME, {
+        newUserInGame: game,
+      });
+      logger.info(`User added to game ${input.gameId}`);
+      return game.users;
     },
     // async startGame(_, { gameId }, { pubsub }) {
     //   const startedGame: Game = await GameModel.findById(gameId);
@@ -55,6 +76,19 @@ export const resolvers = {
     // },
   },
   Subscription: {
+    newUserInGame: {
+      subscribe: withFilter(
+        (parent, args, { pubsub }) =>
+          pubsub.asyncIterator([USED_ADDED_TO_GAME]),
+        (payload, variables) => {
+          logger.info(
+            `New User in Game Subscription to ${payload.newUserInGame.id}`
+          );
+          logger.info(`Filtering based of ${variables.gameId}`);
+          return payload.newUserInGame.id === variables.gameId;
+        }
+      ),
+    },
     // gameStarted: {
     //   subscribe: withFilter(
     //     (parent, args, { pubsub }) => pubsub.asyncIterator([GAME_STARTED]),
