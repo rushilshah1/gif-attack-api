@@ -21,6 +21,7 @@
     "mongoose": "^5.8.2",
     "pino": "^5.17.0",
     "pino-pretty": "^3.6.1",
+    "shortid": "^2.2.15",
     "subscriptions-transport-ws": "^0.9.16",
     "typegoose": "^5.9.1",
     "typescript": "^3.4.5"

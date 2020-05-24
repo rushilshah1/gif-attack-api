@@ -27,7 +27,7 @@ export const resolvers = {
       await pubsub.publish(NEXT_ROUND, {
         roundStarted: newRound,
       });
-      logger.info("New round initiated");
+      logger.info("New round started");
       return newRound;
     },
   },

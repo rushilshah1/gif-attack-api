@@ -10,16 +10,16 @@ const VOTE_REMOVED = "VOTE_REMOVED";
 //gif is actually a big object will be stringified and parsed using String
 export const typeDefs = gql`
   type Gif {
-    id: String
+    id: ID
     gif: String
-    gameId: String!
+    gameId: ID!
     userName: String
     gifSearchText: String
   }
   input GifInput {
-    id: String
+    id: ID
     gif: String
-    gameId: String!
+    gameId: ID!
     userName: String
     gifSearchText: String
   }
@@ -31,10 +31,10 @@ export const typeDefs = gql`
     unvotedForGif(input: GifInput!): Gif
   }
   extend type Subscription {
-    gifCreated(gameId: String!): Gif
-    gifDeleted(gameId: String!): Gif
-    gifVoteAdded(gameId: String!): Gif
-    gifVoteRemoved(gameId: String!): Gif
+    gifCreated(gameId: ID!): Gif
+    gifDeleted(gameId: ID!): Gif
+    gifVoteAdded(gameId: ID!): Gif
+    gifVoteRemoved(gameId: ID!): Gif
   }
 `;
 

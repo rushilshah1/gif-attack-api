@@ -4,7 +4,6 @@ import * as topic from "./topic";
 import * as gif from "./gif";
 import * as game from "./game";
 import * as round from "./round";
-import * as graphqlContext from "./context";
 import { merge } from "lodash";
 import { logger } from "../common";
 
@@ -25,14 +24,12 @@ const defaultTypeDefs = gql`
 
 export const typeDefs = [
   defaultTypeDefs,
-  message.typeDefs,
   topic.typeDefs,
   gif.typeDefs,
   game.typeDefs,
   round.typeDefs,
 ];
 export const resolvers = merge(
-  message.resolvers,
   topic.resolvers,
   gif.resolvers,
   game.resolvers,

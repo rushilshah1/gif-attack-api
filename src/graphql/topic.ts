@@ -6,18 +6,18 @@ const TOPIC_CREATED = "TOPIC_CREATED";
 
 export const typeDefs = gql`
   type Topic {
-    gameId: String!
+    gameId: ID!
     text: String!
   }
   input TopicInput {
-    gameId: String!
+    gameId: ID!
     text: String!
   }
   extend type Mutation {
     createTopic(input: TopicInput!): Topic
   }
   extend type Subscription {
-    topicCreated(gameId: String!): Topic
+    topicCreated(gameId: ID!): Topic
   }
 `;
 
