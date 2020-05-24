@@ -1,11 +1,12 @@
 // configuring environment variables
-import * as dotenv from "dotenv"
-import * as express from 'express';
-import { createServer } from 'http';
-import { ApolloServer } from 'apollo-server-express';
-import { typeDefs, resolvers, context } from './src/graphql';
-import { database } from './src/common/db'
+import * as dotenv from "dotenv";
+import * as express from "express";
+import { createServer } from "http";
+import { ApolloServer } from "apollo-server-express";
+import { typeDefs, resolvers, context } from "./src/graphql";
+import { database } from "./src/common/db";
 import { logger } from "./src/common/logger";
+import * as cors from "cors";
 
 dotenv.config();
 const PORT = 4000;
@@ -13,16 +14,28 @@ const PORT = 4000;
 const connectToDB = async () => {
   try {
     return database.connect();
-  }
-  catch (err) {
-    logger.fatal(`Error connecting to database. Please make sure database is running. ${err}`);
+  } catch (err) {
+    logger.fatal(
+      `Error connecting to database. Please make sure database is running. ${err}`
+    );
     throw err;
   }
 };
 
 const app = express();
+app.use(cors());
+const corsOptions = {
+  origin: "http://localhost:3000",
+  credentials: true,
+};
 const apolloServer = new ApolloServer({ typeDefs, resolvers, context });
-apolloServer.applyMiddleware({ app });
+apolloServer.applyMiddleware({
+  app,
+  cors: {
+    credentials: true,
+    origin: true,
+  },
+});
 
 const httpServer = createServer(app);
 apolloServer.installSubscriptionHandlers(httpServer);
@@ -31,9 +44,12 @@ apolloServer.installSubscriptionHandlers(httpServer);
 connectToDB()
   .then(async () => {
     httpServer.listen({ port: PORT }, () => {
-      console.log(`🚀 Server ready at http://localhost:${PORT}${apolloServer.graphqlPath}`)
-      console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloServer.subscriptionsPath}`)
-    })
+      console.log(
+        `🚀 Server ready at http://localhost:${PORT}${apolloServer.graphqlPath}`
+      );
+      console.log(
+        `🚀 Subscriptions ready at ws://localhost:${PORT}${apolloServer.subscriptionsPath}`
+      );
+    });
   })
-  .catch(err => logger.error(`Error connecting to database: ${err}`));
-
+  .catch((err) => logger.error(`Error connecting to database: ${err}`));

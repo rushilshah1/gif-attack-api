@@ -30,29 +30,29 @@ export const typeDefs = gql`
   }
   extend type Subscription {
     newUserInGame(gameId: ID!): Game
-    # gameStarted(gameId: ID!): Game
   }
 `;
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// function sleep(ms) {
+//   return new Promise((resolve) => setTimeout(resolve, ms));
+// }
 
 export const resolvers = {
   Query: {
     async getUsers(_, { gameId }) {
       console.log(`Fetching users in game ${gameId}`);
       const game: Game = await GameModel.findById(gameId);
-      //await sleep(5000);
-      return game ? game.users : [];
-    },
-    async getGameById(_, { gameId }) {
-      try {
-        return await GameModel.findById(gameId);
-      } catch (error) {
-        console.error(error);
+      if (!game) {
         throw new UserInputError("Invalid game id");
       }
+      return game.users;
+    },
+    async getGameById(_, { gameId }) {
+      const game: Game = await GameModel.findById(gameId);
+      if (!game) {
+        throw new UserInputError("Invalid game id");
+      }
+      return game;
     },
     async getGames(_) {
       return await GameModel.find({});
@@ -70,8 +70,8 @@ export const resolvers = {
       return newGame;
     },
     async addUserToGame(_, { input }, { pubsub }) {
-      const game: Game = await GameModel.findOneAndUpdate(
-        { _id: input.gameId },
+      const game: Game = await GameModel.findByIdAndUpdate(
+        input.gameId,
         {
           $push: {
             users: { name: input.name },
@@ -81,6 +81,9 @@ export const resolvers = {
           new: true,
         }
       );
+      if (!game) {
+        throw new UserInputError("Invalid game id");
+      }
       await pubsub.publish(USED_ADDED_TO_GAME, {
         newUserInGame: game,
       });
@@ -88,11 +91,14 @@ export const resolvers = {
       return game.users;
     },
     async startGame(_, { gameId }, { pubsub }) {
-      const startedGame: Game = await GameModel.findOneAndUpdate(
-        { _id: gameId },
+      const startedGame: Game = await GameModel.findByIdAndUpdate(
+        gameId,
         { started: true },
         { new: true }
       );
+      if (!startedGame) {
+        throw new UserInputError("Invalid game id");
+      }
       return startedGame;
     },
   },
