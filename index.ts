@@ -24,10 +24,14 @@ const connectToDB = async () => {
 
 const app = express();
 app.use(cors());
-const corsOptions = {
-  origin: "http://localhost:3000",
-  credentials: true,
-};
+//Configure simple health check
+app.get("/", function (req, res) {
+  res.send({
+    message: "Server is up and running",
+    environment: process.env.ENV,
+  });
+});
+
 const apolloServer = new ApolloServer({ typeDefs, resolvers, context });
 apolloServer.applyMiddleware({
   app,
