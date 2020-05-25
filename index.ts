@@ -7,6 +7,7 @@ import { typeDefs, resolvers, context } from "./src/graphql";
 import { database } from "./src/common/db";
 import { logger } from "./src/common/logger";
 import * as cors from "cors";
+import * as os from "os";
 
 dotenv.config();
 const PORT = 4000;
@@ -49,10 +50,14 @@ connectToDB()
   .then(async () => {
     httpServer.listen({ port: PORT }, () => {
       console.log(
-        `🚀 Server ready at http://localhost:${PORT}${apolloServer.graphqlPath}`
+        `🚀 Server ready in ${
+          process.env.ENV
+        } at ${os.hostname()} on port ${PORT}`
       );
       console.log(
-        `🚀 Subscriptions ready at ws://localhost:${PORT}${apolloServer.subscriptionsPath}`
+        `🚀 Subscriptions ready in ${
+          process.env.ENV
+        } at ${os.hostname()} on port ${PORT}`
       );
     });
   })
