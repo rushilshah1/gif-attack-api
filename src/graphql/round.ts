@@ -20,6 +20,20 @@ export const typeDefs = gql`
   }
 `;
 
+const withCancel = (asyncIterator, onCancel) => {
+  // logger.info("CANCELLING SUBSCRIPTION");
+  const asyncReturn = asyncIterator.return;
+
+  asyncIterator.return = () => {
+    onCancel();
+    return asyncReturn
+      ? asyncReturn.call(asyncIterator)
+      : Promise.resolve({ value: undefined, done: true });
+  };
+
+  return asyncIterator;
+};
+
 export const resolvers = {
   Mutation: {
     async nextRound(_, { input }, { pubsub }) {
@@ -34,9 +48,17 @@ export const resolvers = {
   Subscription: {
     roundStarted: {
       subscribe: withFilter(
-        (parent, args, { pubsub }) => pubsub.asyncIterator([NEXT_ROUND]),
-        (payload, variables) => {
-          logger.info("Subscribing to new round topic");
+        (parent, args, { pubsub, user }) => {
+          pubsub.asyncIterator([NEXT_ROUND]);
+
+          return withCancel(pubsub.asyncIterator(NEXT_ROUND), (response) => {
+            logger.info(response);
+            logger.info(`${user} is closed subscription to new round topic`);
+            logger.info(`Subscription closed, do your cleanup`);
+          });
+        },
+        (payload, variables, { pubsub, user }) => {
+          logger.info(`${user} is subscribing to new round topic`);
           return payload.roundStarted.gameId === variables.gameId;
         }
       ),

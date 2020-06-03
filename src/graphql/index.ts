@@ -7,7 +7,7 @@ import * as round from "./round";
 import { merge } from "lodash";
 import { logger } from "../common";
 
-const pubsub = new PubSub();
+// const pubsub = new PubSub();
 const defaultTypeDefs = gql`
   type Query {
     _empty: String
@@ -35,4 +35,4 @@ export const resolvers = merge(
   game.resolvers,
   round.resolvers
 );
-export const context = { pubsub };
+// export const context = { pubsub };
