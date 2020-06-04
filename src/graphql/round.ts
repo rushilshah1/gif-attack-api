@@ -1,6 +1,9 @@
 import { gql } from "apollo-server-express";
 import { PubSub, withFilter } from "apollo-server";
 import { logger } from "../common";
+import { removeUserFromGame } from "./game";
+import gameService from "../services/game.service";
+import { Game } from "../models/game";
 
 const NEXT_ROUND = "NEXT_ROUND";
 
@@ -48,14 +51,24 @@ export const resolvers = {
   Subscription: {
     roundStarted: {
       subscribe: withFilter(
-        (parent, args, { pubsub, user }) => {
+        (parent, { gameId }, { pubsub, user }) => {
           pubsub.asyncIterator([NEXT_ROUND]);
 
-          return withCancel(pubsub.asyncIterator(NEXT_ROUND), (response) => {
-            logger.info(response);
-            logger.info(`${user} is closed subscription to new round topic`);
-            logger.info(`Subscription closed, do your cleanup`);
-          });
+          return withCancel(
+            pubsub.asyncIterator(NEXT_ROUND),
+            async (response) => {
+              logger.info(`Subscription cancelled for game: ${gameId}`);
+              logger.info(
+                `${user} is closed subscription to ${NEXT_ROUND} topic`
+              );
+              const updatedGame: Game = await gameService.removeUser(
+                gameId,
+                user,
+                pubsub
+              );
+              logger.info(`Subscription closed, do your cleanup`);
+            }
+          );
         },
         (payload, variables, { pubsub, user }) => {
           logger.info(`${user} is subscribing to new round topic`);

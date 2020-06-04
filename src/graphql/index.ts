@@ -7,7 +7,8 @@ import * as round from "./round";
 import { merge } from "lodash";
 import { logger } from "../common";
 
-// const pubsub = new PubSub();
+const pubsub = new PubSub();
+
 const defaultTypeDefs = gql`
   type Query {
     _empty: String
@@ -35,4 +36,15 @@ export const resolvers = merge(
   game.resolvers,
   round.resolvers
 );
-// export const context = { pubsub };
+export const context = ({ req, connection }) => {
+  let user: string = "";
+  if (req) {
+    logger.info(`HTTP request ${req.headers.authorization}`);
+    user = req.headers.authorization || "";
+  }
+  if (connection) {
+    logger.info(`WS connection ${connection.context.user}`);
+    user = connection.context.user || "";
+  }
+  return { user, pubsub };
+};

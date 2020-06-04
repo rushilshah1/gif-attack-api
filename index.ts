@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 import * as express from "express";
 import { createServer } from "http";
 import { ApolloServer, PubSub } from "apollo-server-express";
-import { typeDefs, resolvers } from "./src/graphql";
+import { typeDefs, resolvers, context } from "./src/graphql";
 import { database } from "./src/common/db";
 import { logger } from "./src/common/logger";
 import * as cors from "cors";
@@ -38,20 +38,7 @@ app.get("/", function (req, res) {
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req, connection }) => {
-    let user: string = "";
-    if (req) {
-      logger.info(`HTTP request ${req.headers.authorization}`);
-      user = req.headers.authorization || "";
-    }
-    if (connection) {
-      logger.info(`WS connection ${connection.context.user}`);
-      user = connection.context.user || "";
-    }
-
-    // logger.info(`User: ${user}`);
-    return { user, pubsub };
-  },
+  context,
 });
 apolloServer.applyMiddleware({
   app,
