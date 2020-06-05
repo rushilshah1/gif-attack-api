@@ -30,7 +30,7 @@ app.use(cors());
 //Configure simple health check
 app.get("/", function (req, res) {
   res.send({
-    message: "Server is up and running",
+    message: "Server is up and running!!!",
     environment: process.env.ENV,
   });
 });
