@@ -1,5 +1,5 @@
 import { Game, GameModel } from "../models/game";
-import { UserInputError } from "apollo-server";
+import { UserInputError, PubSub } from "apollo-server";
 import { USER_REMOVED_FROM_GAME } from "../graphql/game";
 import { logger } from "../common";
 
@@ -7,7 +7,7 @@ export class GameService {
   async removeUser(
     gameId: string,
     userName: string,
-    pubsub: any
+    pubsub: PubSub
   ): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,

@@ -58,9 +58,7 @@ export const resolvers = {
             pubsub.asyncIterator(NEXT_ROUND),
             async (response) => {
               logger.info(`Subscription cancelled for game: ${gameId}`);
-              logger.info(
-                `${user} is closed subscription to ${NEXT_ROUND} topic`
-              );
+              logger.info(`${user} closed subscription to ${NEXT_ROUND} topic`);
               const updatedGame: Game = await gameService.removeUser(
                 gameId,
                 user,
