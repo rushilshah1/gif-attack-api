@@ -3,13 +3,14 @@ import { withFilter } from "apollo-server";
 import { logger } from "../common";
 import { Game, GameModel } from "../models/game";
 import gameService from "../services/game.service";
+import { User } from "../models/user";
 
-const USED_ADDED_TO_GAME: string = "USED_ADDED_TO_GAME";
-export const USER_REMOVED_FROM_GAME: string = "USER_REMOVED_FROM_GAME";
+export const USED_CHANGED_IN_GAME: string = "USED_CHANGED_IN_GAME";
 
 export const typeDefs = gql`
   type User {
     name: String!
+    score: Int
   }
   type Game {
     id: ID!
@@ -19,6 +20,7 @@ export const typeDefs = gql`
   input UserInput {
     name: String!
     gameId: ID!
+    score: Int
   }
   extend type Query {
     getUsers(gameId: ID!): [User]
@@ -27,37 +29,17 @@ export const typeDefs = gql`
   }
   extend type Mutation {
     createGame(userName: String!): Game
+    startGame(gameId: ID!): Game
     addUserToGame(input: UserInput!): [User]
     removeUserFromGame(input: UserInput!): [User]
-    startGame(gameId: ID!): Game
+    userScoredInGame(input: UserInput!): [User]
   }
   extend type Subscription {
-    newUserInGame(gameId: ID!): Game
-    userRemovedFromGame(gameId: ID!): Game
+    usersChangedInGame(gameId: ID!): Game
+    # newUserInGame(gameId: ID!): Game
+    # userRemovedFromGame(gameId: ID!): Game
   }
 `;
-
-export const removeUserFromGame = async (root, { input }, { pubsub }, info) => {
-  const game: Game = await GameModel.findByIdAndUpdate(
-    input.gameId,
-    {
-      $pull: {
-        users: { name: input.name },
-      },
-    },
-    {
-      new: true,
-    }
-  );
-  if (!game) {
-    throw new UserInputError("Invalid game id");
-  }
-  await pubsub.publish(USER_REMOVED_FROM_GAME, {
-    userRemovedFromGame: game,
-  });
-  logger.info(`Removing ${input.name} from ${input.gameId}`);
-  return game.users;
-};
 
 export const resolvers = {
   Query: {
@@ -82,7 +64,6 @@ export const resolvers = {
   },
   Mutation: {
     async createGame(_, { userName }) {
-      //Add unique game ID
       logger.info(`${userName} is creating a game`);
       const gameModel = new GameModel({
         users: [{ name: userName }],
@@ -90,37 +71,6 @@ export const resolvers = {
       });
       const newGame: Game = await gameModel.save();
       return newGame;
-    },
-    async addUserToGame(_, { input }, { pubsub }) {
-      const game: Game = await GameModel.findByIdAndUpdate(
-        input.gameId,
-        {
-          $push: {
-            users: { name: input.name },
-          },
-        },
-        {
-          new: true,
-        }
-      );
-      if (!game) {
-        throw new UserInputError("Invalid game id");
-      }
-      await pubsub.publish(USED_ADDED_TO_GAME, {
-        newUserInGame: game,
-      });
-      logger.info(`User added to game ${input.gameId}`);
-      return game.users;
-    },
-    async removeUserFromGame(root, { input }, { pubsub }, info) {
-      const gameId: string = input.gameId;
-      const userName: string = input.name;
-      const updatedGame: Game = await gameService.removeUser(
-        gameId,
-        userName,
-        pubsub
-      );
-      return updatedGame.users;
     },
     async startGame(_, { gameId }, { pubsub }) {
       const startedGame: Game = await GameModel.findByIdAndUpdate(
@@ -133,30 +83,74 @@ export const resolvers = {
       }
       return startedGame;
     },
+    async addUserToGame(_, { input }, { pubsub }) {
+      const gameId: string = input.gameId;
+      const userName: string = input.name;
+      const updatedGame: Game = await gameService.addUser(
+        gameId,
+        new User({ name: userName, score: 0 })
+      );
+      await pubsub.publish(USED_CHANGED_IN_GAME, {
+        usersChangedInGame: updatedGame,
+      });
+      logger.info(`User added to game ${gameId}`);
+      return updatedGame.users;
+    },
+    async removeUserFromGame(root, { input }, { pubsub }, info) {
+      const gameId: string = input.gameId;
+      const userName: string = input.name;
+      const updatedGame: Game = await gameService.removeUser(gameId, userName);
+      await pubsub.publish(USED_CHANGED_IN_GAME, {
+        usersChangedInGame: updatedGame,
+      });
+      return updatedGame.users;
+    },
+    async userScoredInGame(_, { input }, { pubsub }) {
+      const gameId: string = input.gameId;
+      const userToUpdate = new User({ name: input.name, score: input.score });
+      const updatedGame: Game = await gameService.updateUser(
+        gameId,
+        userToUpdate
+      );
+      await pubsub.publish(USED_CHANGED_IN_GAME, {
+        usersChangedInGame: updatedGame,
+      });
+      return updatedGame.users;
+    },
   },
   Subscription: {
-    newUserInGame: {
-      subscribe: withFilter(
-        (parent, args, { pubsub }) =>
-          pubsub.asyncIterator([USED_ADDED_TO_GAME]),
-        (payload, variables) => {
-          logger.info(
-            `New User in Game Subscription to ${payload.newUserInGame.id}`
-          );
-          logger.info(`Filtering based of ${variables.gameId}`);
-          return payload.newUserInGame.id === variables.gameId;
-        }
-      ),
-    },
-    userRemovedFromGame: {
+    usersChangedInGame: {
       subscribe: withFilter(
         (parent, args, { pubsub, user }) =>
-          pubsub.asyncIterator([USER_REMOVED_FROM_GAME]),
+          pubsub.asyncIterator([USED_CHANGED_IN_GAME]),
         (payload, variables) => {
-          logger.info(`User removed from ${variables.gameId}`);
-          return payload.userRemovedFromGame.id === variables.gameId;
+          logger.info(`Users changed in ${variables.gameId}`);
+          return payload.usersChangedInGame.id === variables.gameId;
         }
       ),
     },
+    // newUserInGame: {
+    //   subscribe: withFilter(
+    //     (parent, args, { pubsub }) =>
+    //       pubsub.asyncIterator([USED_ADDED_TO_GAME]),
+    //     (payload, variables) => {
+    //       logger.info(
+    //         `New User in Game Subscription to ${payload.newUserInGame.id}`
+    //       );
+    //       logger.info(`Filtering based of ${variables.gameId}`);
+    //       return payload.newUserInGame.id === variables.gameId;
+    //     }
+    //   ),
+    // },
+    // userRemovedFromGame: {
+    //   subscribe: withFilter(
+    //     (parent, args, { pubsub, user }) =>
+    //       pubsub.asyncIterator([USER_REMOVED_FROM_GAME]),
+    //     (payload, variables) => {
+    //       logger.info(`User removed from ${variables.gameId}`);
+    //       return payload.userRemovedFromGame.id === variables.gameId;
+    //     }
+    //   ),
+    // },
   },
 };

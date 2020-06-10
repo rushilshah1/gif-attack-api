@@ -39,11 +39,9 @@ export const resolvers = merge(
 export const context = ({ req, connection }) => {
   let user: string = "";
   if (req) {
-    logger.info(`HTTP request ${req.headers.authorization}`);
     user = req.headers.authorization || "";
   }
   if (connection) {
-    logger.info(`WS connection ${connection.context.user}`);
     user = connection.context.user || "";
   }
   return { user, pubsub };

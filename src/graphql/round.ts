@@ -1,9 +1,6 @@
 import { gql } from "apollo-server-express";
-import { PubSub, withFilter } from "apollo-server";
+import { withFilter } from "apollo-server";
 import { logger } from "../common";
-import { removeUserFromGame } from "./game";
-import gameService from "../services/game.service";
-import { Game } from "../models/game";
 
 const NEXT_ROUND = "NEXT_ROUND";
 
@@ -23,19 +20,19 @@ export const typeDefs = gql`
   }
 `;
 
-const withCancel = (asyncIterator, onCancel) => {
-  // logger.info("CANCELLING SUBSCRIPTION");
-  const asyncReturn = asyncIterator.return;
+// const withCancel = (asyncIterator, onCancel) => {
+//   // logger.info("CANCELLING SUBSCRIPTION");
+//   const asyncReturn = asyncIterator.return;
 
-  asyncIterator.return = () => {
-    onCancel();
-    return asyncReturn
-      ? asyncReturn.call(asyncIterator)
-      : Promise.resolve({ value: undefined, done: true });
-  };
+//   asyncIterator.return = () => {
+//     onCancel();
+//     return asyncReturn
+//       ? asyncReturn.call(asyncIterator)
+//       : Promise.resolve({ value: undefined, done: true });
+//   };
 
-  return asyncIterator;
-};
+//   return asyncIterator;
+// };
 
 export const resolvers = {
   Mutation: {
@@ -51,23 +48,22 @@ export const resolvers = {
   Subscription: {
     roundStarted: {
       subscribe: withFilter(
-        (parent, { gameId }, { pubsub, user }) => {
-          pubsub.asyncIterator([NEXT_ROUND]);
+        (parent, { gameId }, { pubsub, user }) =>
+          pubsub.asyncIterator([NEXT_ROUND]),
 
-          return withCancel(
-            pubsub.asyncIterator(NEXT_ROUND),
-            async (response) => {
-              logger.info(`Subscription cancelled for game: ${gameId}`);
-              logger.info(`${user} closed subscription to ${NEXT_ROUND} topic`);
-              const updatedGame: Game = await gameService.removeUser(
-                gameId,
-                user,
-                pubsub
-              );
-              logger.info(`Subscription closed, do your cleanup`);
-            }
-          );
-        },
+        // return withCancel(
+        //   pubsub.asyncIterator(NEXT_ROUND),
+        //   async (response) => {
+        //     logger.info(`Subscription cancelled for game: ${gameId}`);
+        //     logger.info(`${user} closed subscription to ${NEXT_ROUND} topic`);
+        //     const updatedGame: Game = await gameService.removeUser(
+        //       gameId,
+        //       user,
+        //       pubsub
+        //     );
+        //     logger.info(`Subscription closed, do your cleanup`);
+        //   }
+        // );
         (payload, variables, { pubsub, user }) => {
           logger.info(`${user} is subscribing to new round topic`);
           return payload.roundStarted.gameId === variables.gameId;

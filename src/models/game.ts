@@ -12,8 +12,8 @@ export class Game {
   @arrayProp({ items: User })
   users?: Array<Ref<User>> = [];
 
-  @prop()
-  started: boolean = false;
+  @prop({ default: false })
+  started: boolean;
 
   constructor(game?: Partial<Game>) {
     Object.assign(this, game);
