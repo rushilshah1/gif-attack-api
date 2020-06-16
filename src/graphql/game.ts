@@ -1,9 +1,10 @@
 import { gql, UserInputError } from "apollo-server-express";
 import { withFilter } from "apollo-server";
 import { logger } from "../common";
-import { Game, GameModel } from "../models/game";
+import { Game, GameModel } from "../models/Game";
 import gameService from "../services/game.service";
-import { User } from "../models/user";
+import { User } from "../models/User";
+import gameAttributesService from "../services/game-attributes.service";
 
 export const USED_CHANGED_IN_GAME: string = "USED_CHANGED_IN_GAME";
 
@@ -30,63 +31,39 @@ export const typeDefs = gql`
   extend type Mutation {
     createGame(userName: String!): Game
     startGame(gameId: ID!): Game
-    addUserToGame(input: UserInput!): [User]
-    removeUserFromGame(input: UserInput!): [User]
-    userScoredInGame(input: UserInput!): [User]
+    addUser(input: UserInput!): [User]
+    removeUser(input: UserInput!): [User]
+    updateUser(input: UserInput!): [User]
   }
   extend type Subscription {
     usersChangedInGame(gameId: ID!): Game
-    # newUserInGame(gameId: ID!): Game
-    # userRemovedFromGame(gameId: ID!): Game
   }
 `;
 
 export const resolvers = {
   Query: {
     async getUsers(_, { gameId }) {
-      console.log(`Fetching users in game ${gameId}`);
-      const game: Game = await GameModel.findById(gameId);
-      if (!game) {
-        throw new UserInputError("Invalid game id");
-      }
+      const game: Game = await gameService.getGameById(gameId);
       return game.users;
     },
     async getGameById(_, { gameId }) {
-      const game: Game = await GameModel.findById(gameId);
-      if (!game) {
-        throw new UserInputError("Invalid game id");
-      }
-      return game;
+      return gameService.getGameById(gameId);
     },
     async getGames(_) {
-      return await GameModel.find({});
+      return gameService.getGames();
     },
   },
   Mutation: {
     async createGame(_, { userName }) {
-      logger.info(`${userName} is creating a game`);
-      const gameModel = new GameModel({
-        users: [{ name: userName }],
-        started: false,
-      });
-      const newGame: Game = await gameModel.save();
-      return newGame;
+      return gameService.createGame(userName);
     },
     async startGame(_, { gameId }, { pubsub }) {
-      const startedGame: Game = await GameModel.findByIdAndUpdate(
-        gameId,
-        { started: true },
-        { new: true }
-      );
-      if (!startedGame) {
-        throw new UserInputError("Invalid game id");
-      }
-      return startedGame;
+      return gameService.startGame(gameId);
     },
-    async addUserToGame(_, { input }, { pubsub }) {
+    async addUser(_, { input }, { pubsub }) {
       const gameId: string = input.gameId;
       const userName: string = input.name;
-      const updatedGame: Game = await gameService.addUser(
+      const updatedGame: Game = await gameAttributesService.addUser(
         gameId,
         new User({ name: userName, score: 0 })
       );
@@ -96,19 +73,22 @@ export const resolvers = {
       logger.info(`User added to game ${gameId}`);
       return updatedGame.users;
     },
-    async removeUserFromGame(root, { input }, { pubsub }, info) {
+    async removeUser(root, { input }, { pubsub }, info) {
       const gameId: string = input.gameId;
       const userName: string = input.name;
-      const updatedGame: Game = await gameService.removeUser(gameId, userName);
+      const updatedGame: Game = await gameAttributesService.removeUser(
+        gameId,
+        userName
+      );
       await pubsub.publish(USED_CHANGED_IN_GAME, {
         usersChangedInGame: updatedGame,
       });
       return updatedGame.users;
     },
-    async userScoredInGame(_, { input }, { pubsub }) {
+    async updateUser(_, { input }, { pubsub }) {
       const gameId: string = input.gameId;
       const userToUpdate = new User({ name: input.name, score: input.score });
-      const updatedGame: Game = await gameService.updateUser(
+      const updatedGame: Game = await gameAttributesService.updateUser(
         gameId,
         userToUpdate
       );
@@ -129,28 +109,5 @@ export const resolvers = {
         }
       ),
     },
-    // newUserInGame: {
-    //   subscribe: withFilter(
-    //     (parent, args, { pubsub }) =>
-    //       pubsub.asyncIterator([USED_ADDED_TO_GAME]),
-    //     (payload, variables) => {
-    //       logger.info(
-    //         `New User in Game Subscription to ${payload.newUserInGame.id}`
-    //       );
-    //       logger.info(`Filtering based of ${variables.gameId}`);
-    //       return payload.newUserInGame.id === variables.gameId;
-    //     }
-    //   ),
-    // },
-    // userRemovedFromGame: {
-    //   subscribe: withFilter(
-    //     (parent, args, { pubsub, user }) =>
-    //       pubsub.asyncIterator([USER_REMOVED_FROM_GAME]),
-    //     (payload, variables) => {
-    //       logger.info(`User removed from ${variables.gameId}`);
-    //       return payload.userRemovedFromGame.id === variables.gameId;
-    //     }
-    //   ),
-    // },
   },
 };

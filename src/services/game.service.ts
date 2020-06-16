@@ -1,59 +1,41 @@
-import { Game, GameModel } from "../models/game";
+import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
 import { USED_CHANGED_IN_GAME } from "../graphql/game";
 import { logger } from "../common";
-import { User } from "../models/user";
+import { User } from "../models/User";
 
 export class GameService {
-  async removeUser(gameId: string, userName: string): Promise<Game> {
-    const game: Game = await GameModel.findByIdAndUpdate(
-      gameId,
-      {
-        $pull: {
-          users: { name: userName },
-        },
-      },
-      {
-        new: true,
-      }
-    );
+  async getGames(): Promise<Array<Game>> {
+    return await GameModel.find({});
+  }
+
+  async getGameById(id: string): Promise<Game> {
+    const game: Game = await GameModel.findById(id);
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
-
-    logger.info(`Removing ${userName} from ${gameId}`);
     return game;
   }
 
-  async addUser(gameId: string, userToAdd: User): Promise<Game> {
-    const game: Game = await GameModel.findByIdAndUpdate(
-      gameId,
-      {
-        $push: {
-          users: userToAdd,
-        },
-      },
-      {
-        new: true,
-      }
-    );
-    if (!game) {
-      throw new UserInputError("Invalid game id");
-    }
-
-    return game;
+  async createGame(firstUser: string): Promise<Game> {
+    const gameModel = new GameModel({
+      users: [{ name: firstUser }],
+      started: false,
+    });
+    const newGame: Game = await gameModel.save();
+    return newGame;
   }
 
-  async updateUser(gameId: string, userToUpdate: User): Promise<Game> {
-    const game: Game = await GameModel.findOneAndUpdate(
-      { _id: gameId, "users.name": { $in: [userToUpdate.name] } },
-      { $set: { "users.$.score": userToUpdate.score } },
+  async startGame(id: string): Promise<Game> {
+    const startedGame: Game = await GameModel.findByIdAndUpdate(
+      id,
+      { started: true },
       { new: true }
     );
-    if (!game) {
-      throw new UserInputError("Invalid game id or user information provided");
+    if (!startedGame) {
+      throw new UserInputError("Invalid game id");
     }
-    return game;
+    return startedGame;
   }
 }
 export default new GameService();
