@@ -49,26 +49,10 @@ export const resolvers = {
       await pubsub.publish(MESSAGE_CREATED, { messageCreated: newMessage });
       return newMessage;
     },
-    // async updateMessage(_, { id, text, isFavorite }) {
-    //     const message = await Message.findById(id);
-    //     await message.update({ text, isFavorite })
-    //         .then(message => {
-    //             pubsub.publish(MESSAGE_UPDATED, { messageUpdated: message });
-    //         });
-    //     return message;
-    // },
   },
   Subscription: {
     messageCreated: {
       subscribe: () => pubsub.asyncIterator([MESSAGE_CREATED]),
     },
-    // messageUpdated: {
-    //     subscribe: withFilter(
-    //         () => pubsub.asyncIterator('MESSAGE_UPDATED'),
-    //         (payload, variables) => {
-    //             return payload.messageUpdated.id === variables.id;
-    //         },
-    //     ),
-    // },
   },
 };

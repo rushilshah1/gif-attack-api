@@ -1,6 +1,5 @@
 import { prop, getModelForClass, Ref, arrayProp } from "@typegoose/typegoose";
 import { User } from "./User";
-import { ObjectID } from "bson";
 import * as shortid from "shortid";
 import { SubmittedGif } from "./SubmittedGif";
 
@@ -11,7 +10,7 @@ export class Game {
   readonly id: string;
 
   @arrayProp({ items: User })
-  users?: Array<Ref<User>> = [];
+  users: Array<Ref<User>> = [];
 
   @prop({ default: false })
   started: boolean;
@@ -23,7 +22,7 @@ export class Game {
   roundNumber: number;
 
   @arrayProp({ items: SubmittedGif })
-  gifs: Array<Ref<SubmittedGif>>;
+  submittedGifs: Array<Ref<SubmittedGif>>;
 
   constructor(game?: Partial<Game>) {
     Object.assign(this, game);

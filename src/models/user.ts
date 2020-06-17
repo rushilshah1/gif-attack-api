@@ -15,5 +15,3 @@ export class User {
     Object.assign(this, user);
   }
 }
-
-// export const UserModel = getModelForClass(User);

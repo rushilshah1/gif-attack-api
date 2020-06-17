@@ -12,10 +12,9 @@ export const typeDefs = gql`
   }
   input RoundInput {
     roundNumber: Int!
-    gameId: ID!
   }
   extend type Mutation {
-    nextRound(input: RoundInput!): Round
+    nextRound(round: RoundInput!, gameId: ID!): Int!
   }
   extend type Subscription {
     roundChanged(gameId: ID!): Round
@@ -24,28 +23,24 @@ export const typeDefs = gql`
 
 export const resolvers = {
   Mutation: {
-    async nextRound(_, { input }, { pubsub }) {
-      const newRound = {
-        ...input,
-        ...{ roundNumber: input.roundNumber + 1 },
-      };
+    async nextRound(_, { round, gameId }, { pubsub }) {
       const game: Game = await gameAttributesService.updateRoundNumber(
-        input.gameId,
-        input.roundNumber + 1
+        gameId,
+        round.roundNumber
       );
       await pubsub.publish(NEXT_ROUND, {
-        roundChanged: newRound,
+        roundChanged: game,
       });
-      return newRound;
+      return game.roundNumber;
     },
   },
   Subscription: {
     roundChanged: {
       subscribe: withFilter(
-        (parent, { gameId }, { pubsub, user }) =>
+        (parent, variables, { pubsub, user }) =>
           pubsub.asyncIterator([NEXT_ROUND]),
         (payload, variables, { pubsub, user }) => {
-          return payload.roundStarted.gameId === variables.gameId;
+          return payload.roundChanged.id === variables.gameId;
         }
       ),
     },

@@ -3,17 +3,20 @@ import { ObjectID } from "bson";
 import { User } from "./User";
 
 export class SubmittedGif {
-  @prop({ unique: true })
-  id: string;
+  readonly _id: ObjectID;
+  readonly id: ObjectID;
 
   @prop()
-  gif: string;
+  gifId: string;
+
+  @prop()
+  content: string;
 
   @prop({ default: "" })
   gifSearchText: string;
 
   @prop()
-  userName: string;
+  userId: string;
 
   @prop({ default: 0 })
   numVotes: number;

@@ -4,14 +4,15 @@ import { USED_CHANGED_IN_GAME } from "../graphql/game";
 import { logger } from "../common";
 import { User } from "../models/User";
 import { SubmittedGif } from "../models/SubmittedGif";
+import { ObjectId } from "bson";
 
 export class GameAttributesService {
-  async removeUser(gameId: string, userName: string): Promise<Game> {
+  async removeUser(gameId: string, userId: any): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
         $pull: {
-          users: { name: userName },
+          users: { _id: userId },
         },
       },
       {
@@ -22,7 +23,7 @@ export class GameAttributesService {
       throw new UserInputError("Invalid game id");
     }
 
-    logger.info(`Removing ${userName} from ${gameId}`);
+    // logger.info(`Removing ${userName} from ${gameId}`);
     return game;
   }
 
@@ -47,7 +48,7 @@ export class GameAttributesService {
 
   async updateUser(gameId: string, userToUpdate: User): Promise<Game> {
     const game: Game = await GameModel.findOneAndUpdate(
-      { _id: gameId, "users.name": { $in: [userToUpdate.name] } },
+      { _id: gameId, "users._id": { $in: [userToUpdate.id] } },
       { $set: { "users.$": userToUpdate } },
       { new: true }
     );
@@ -101,7 +102,7 @@ export class GameAttributesService {
       gameId,
       {
         $push: {
-          gifs: newGif,
+          submittedGifs: newGif,
         },
       },
       {
@@ -123,7 +124,7 @@ export class GameAttributesService {
       gameId,
       {
         $pull: {
-          gifs: { id: deleteGif.id },
+          submittedGifs: { gifId: deleteGif.gifId },
         },
       },
       {
@@ -141,12 +142,12 @@ export class GameAttributesService {
     updatedGif: SubmittedGif
   ): Promise<Game> {
     const game: Game = await GameModel.findOneAndUpdate(
-      { _id: gameId, "gifs.id": { $in: [updatedGif.id] } },
-      { $set: { "gifs.$": updatedGif } },
+      { _id: gameId, "submittedGifs.gifId": { $in: [updatedGif.gifId] } },
+      { $set: { "submittedGifs.$": updatedGif } },
       { new: true }
     );
     if (!game) {
-      throw new UserInputError("Invalid game id or user information provided");
+      throw new UserInputError("Invalid game id or gif id provided");
     }
     return game;
   }

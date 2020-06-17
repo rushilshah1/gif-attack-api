@@ -17,11 +17,8 @@ export class GameService {
     return game;
   }
 
-  async createGame(firstUser: string): Promise<Game> {
-    const gameModel = new GameModel({
-      users: [{ name: firstUser }],
-      started: false,
-    });
+  async createGame(): Promise<Game> {
+    const gameModel = new GameModel();
     const newGame: Game = await gameModel.save();
     return newGame;
   }

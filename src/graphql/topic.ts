@@ -2,21 +2,20 @@ import { gql } from "apollo-server-express";
 import { PubSub, withFilter } from "apollo-server";
 import { logger } from "../common";
 import gameAttributesService from "../services/game-attributes.service";
+import { Game } from "../models/Game";
 
 const TOPIC_CHANGED = "TOPIC_CHANGED";
 
 export const typeDefs = gql`
   type Topic {
-    gameId: ID!
-    text: String!
+    topic: String!
   }
   input TopicInput {
-    gameId: ID!
-    text: String!
+    topic: String!
   }
   extend type Mutation {
-    updateTopic(input: TopicInput!): Topic
-    removeTopic(gameId: ID!): Topic
+    updateTopic(topicInput: TopicInput!, gameId: ID!): String
+    removeTopic(gameId: ID!): String
   }
   extend type Subscription {
     topicChanged(gameId: ID!): Topic
@@ -25,20 +24,22 @@ export const typeDefs = gql`
 
 export const resolvers = {
   Mutation: {
-    async updateTopic(_, { input }, { pubsub }) {
-      await gameAttributesService.updateTopic(input.gameId, input.text);
+    async updateTopic(_, { topicInput, gameId }, { pubsub }) {
+      const game: Game = await gameAttributesService.updateTopic(
+        gameId,
+        topicInput.topic
+      );
       await pubsub.publish(TOPIC_CHANGED, {
-        topicChanged: input,
+        topicChanged: game,
       });
-      return input;
+      return game.topic;
     },
     async removeTopic(_, { gameId }, { pubsub }) {
-      const removedTopic = { gameId: gameId, text: "" };
-      await gameAttributesService.removeTopic(gameId);
+      const game: Game = await gameAttributesService.removeTopic(gameId);
       await pubsub.publish(TOPIC_CHANGED, {
-        topicChanged: removedTopic,
+        topicChanged: game,
       });
-      return removedTopic;
+      return game.topic;
     },
   },
   Subscription: {
@@ -47,7 +48,7 @@ export const resolvers = {
         (parent, args, { pubsub }) => pubsub.asyncIterator([TOPIC_CHANGED]),
         (payload, variables) => {
           logger.info(`Subscribing to topic`);
-          return payload.topicCreated.gameId === variables.gameId;
+          return payload.topicChanged.id === variables.gameId;
         }
       ),
     },

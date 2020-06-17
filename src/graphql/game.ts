@@ -10,6 +10,7 @@ export const USED_CHANGED_IN_GAME: string = "USED_CHANGED_IN_GAME";
 
 export const typeDefs = gql`
   type User {
+    id: ID!
     name: String!
     score: Int
   }
@@ -17,10 +18,13 @@ export const typeDefs = gql`
     id: ID!
     users: [User]
     started: Boolean
+    topic: String
+    roundNumber: Int
+    submittedGifs: [Gif]
   }
   input UserInput {
+    id: ID
     name: String!
-    gameId: ID!
     score: Int
   }
   extend type Query {
@@ -29,11 +33,11 @@ export const typeDefs = gql`
     getGames: [Game]
   }
   extend type Mutation {
-    createGame(userName: String!): Game
+    createGame: Game
     startGame(gameId: ID!): Game
-    addUser(input: UserInput!): [User]
-    removeUser(input: UserInput!): [User]
-    updateUser(input: UserInput!): [User]
+    addUser(user: UserInput!, gameId: ID!): [User]
+    removeUser(user: UserInput!, gameId: ID!): [User]
+    updateUser(user: UserInput!, gameId: ID!): [User]
   }
   extend type Subscription {
     usersChangedInGame(gameId: ID!): Game
@@ -54,15 +58,14 @@ export const resolvers = {
     },
   },
   Mutation: {
-    async createGame(_, { userName }) {
-      return gameService.createGame(userName);
+    async createGame(_) {
+      return gameService.createGame();
     },
     async startGame(_, { gameId }, { pubsub }) {
       return gameService.startGame(gameId);
     },
-    async addUser(_, { input }, { pubsub }) {
-      const gameId: string = input.gameId;
-      const userName: string = input.name;
+    async addUser(_, { user, gameId }, { pubsub }) {
+      const userName: string = user.name;
       const updatedGame: Game = await gameAttributesService.addUser(
         gameId,
         new User({ name: userName, score: 0 })
@@ -73,21 +76,19 @@ export const resolvers = {
       logger.info(`User added to game ${gameId}`);
       return updatedGame.users;
     },
-    async removeUser(root, { input }, { pubsub }, info) {
-      const gameId: string = input.gameId;
-      const userName: string = input.name;
+    async removeUser(root, { user, gameId }, { pubsub }, info) {
+      const userId: string = user.id;
       const updatedGame: Game = await gameAttributesService.removeUser(
         gameId,
-        userName
+        userId
       );
       await pubsub.publish(USED_CHANGED_IN_GAME, {
         usersChangedInGame: updatedGame,
       });
       return updatedGame.users;
     },
-    async updateUser(_, { input }, { pubsub }) {
-      const gameId: string = input.gameId;
-      const userToUpdate = new User({ name: input.name, score: input.score });
+    async updateUser(_, { user, gameId }, { pubsub }) {
+      const userToUpdate = new User(user);
       const updatedGame: Game = await gameAttributesService.updateUser(
         gameId,
         userToUpdate
