@@ -1,6 +1,5 @@
 import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
-import { USED_CHANGED_IN_GAME } from "../graphql/game";
 import { logger } from "../common";
 import { User } from "../models/User";
 import { SubmittedGif } from "../models/SubmittedGif";
@@ -28,6 +27,7 @@ export class GameAttributesService {
   }
 
   async addUser(gameId: string, userToAdd: User): Promise<Game> {
+    console.log(userToAdd);
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -49,7 +49,12 @@ export class GameAttributesService {
   async updateUser(gameId: string, userToUpdate: User): Promise<Game> {
     const game: Game = await GameModel.findOneAndUpdate(
       { _id: gameId, "users._id": { $in: [userToUpdate.id] } },
-      { $set: { "users.$": userToUpdate } },
+      {
+        $set: {
+          "users.$.score": userToUpdate.score,
+          "users.$.name": userToUpdate.name,
+        },
+      },
       { new: true }
     );
     if (!game) {
@@ -82,13 +87,17 @@ export class GameAttributesService {
     return game;
   }
 
-  async updateRoundNumber(
-    gameId: string,
-    newRoundNumber: number
-  ): Promise<Game> {
+  async nextRound(gameId: string, newRoundNumber: number): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
-      { $set: { roundNumber: newRoundNumber } },
+      {
+        $set: {
+          roundNumber: newRoundNumber,
+          submittedGifs: [],
+          topic: "",
+          roundStarted: false,
+        },
+      },
       { new: true }
     );
     if (!game) {
@@ -103,6 +112,9 @@ export class GameAttributesService {
       {
         $push: {
           submittedGifs: newGif,
+        },
+        $set: {
+          roundStarted: true,
         },
       },
       {
@@ -142,8 +154,16 @@ export class GameAttributesService {
     updatedGif: SubmittedGif
   ): Promise<Game> {
     const game: Game = await GameModel.findOneAndUpdate(
-      { _id: gameId, "submittedGifs.gifId": { $in: [updatedGif.gifId] } },
-      { $set: { "submittedGifs.$": updatedGif } },
+      { _id: gameId, "submittedGifs._id": { $in: [updatedGif.id] } },
+      {
+        $set: {
+          "submittedGifs.$.gifId": updatedGif.gifId,
+          "submittedGifs.$.content": updatedGif.content,
+          "submittedGifs.$.gifSearchText": updatedGif.gifSearchText,
+          "submittedGifs.$.userId": updatedGif.userId,
+          "submittedGifs.$.numVotes": updatedGif.numVotes,
+        },
+      },
       { new: true }
     );
     if (!game) {

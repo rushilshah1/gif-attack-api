@@ -1,6 +1,5 @@
 import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
-import { USED_CHANGED_IN_GAME } from "../graphql/game";
 import { logger } from "../common";
 import { User } from "../models/User";
 
@@ -26,7 +25,7 @@ export class GameService {
   async startGame(id: string): Promise<Game> {
     const startedGame: Game = await GameModel.findByIdAndUpdate(
       id,
-      { started: true },
+      { gameStarted: true },
       { new: true }
     );
     if (!startedGame) {

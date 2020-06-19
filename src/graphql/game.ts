@@ -6,26 +6,31 @@ import gameService from "../services/game.service";
 import { User } from "../models/User";
 import gameAttributesService from "../services/game-attributes.service";
 
-export const USED_CHANGED_IN_GAME: string = "USED_CHANGED_IN_GAME";
+export const USER_CHANGED_IN_GAME: string = "USER_CHANGED_IN_GAME";
 
 export const typeDefs = gql`
   type User {
     id: ID!
     name: String!
-    score: Int
+    score: Int!
   }
   type Game {
     id: ID!
-    users: [User]
-    started: Boolean
-    topic: String
-    roundNumber: Int
-    submittedGifs: [Gif]
+    users: [User]!
+    gameStarted: Boolean!
+    roundStarted: Boolean!
+    topic: String!
+    roundNumber: Int!
+    submittedGifs: [Gif]!
   }
-  input UserInput {
-    id: ID
+  input AddUserInput {
     name: String!
     score: Int
+  }
+  input ModifyUserInput {
+    id: ID!
+    name: String!
+    score: Int!
   }
   extend type Query {
     getUsers(gameId: ID!): [User]
@@ -35,9 +40,9 @@ export const typeDefs = gql`
   extend type Mutation {
     createGame: Game
     startGame(gameId: ID!): Game
-    addUser(user: UserInput!, gameId: ID!): [User]
-    removeUser(user: UserInput!, gameId: ID!): [User]
-    updateUser(user: UserInput!, gameId: ID!): [User]
+    addUser(user: AddUserInput!, gameId: ID!): User
+    removeUser(user: ModifyUserInput!, gameId: ID!): User
+    updateUser(user: ModifyUserInput!, gameId: ID!): User
   }
   extend type Subscription {
     usersChangedInGame(gameId: ID!): Game
@@ -65,16 +70,17 @@ export const resolvers = {
       return gameService.startGame(gameId);
     },
     async addUser(_, { user, gameId }, { pubsub }) {
-      const userName: string = user.name;
+      const addedUser: User = new User({ name: user.name, score: 0 });
       const updatedGame: Game = await gameAttributesService.addUser(
         gameId,
-        new User({ name: userName, score: 0 })
+        addedUser
       );
-      await pubsub.publish(USED_CHANGED_IN_GAME, {
+      await pubsub.publish(USER_CHANGED_IN_GAME, {
         usersChangedInGame: updatedGame,
       });
       logger.info(`User added to game ${gameId}`);
-      return updatedGame.users;
+      //Newest is added to end - TODO retrieve added user in mongo query
+      return updatedGame.users[updatedGame.users.length - 1];
     },
     async removeUser(root, { user, gameId }, { pubsub }, info) {
       const userId: string = user.id;
@@ -82,10 +88,11 @@ export const resolvers = {
         gameId,
         userId
       );
-      await pubsub.publish(USED_CHANGED_IN_GAME, {
+      await pubsub.publish(USER_CHANGED_IN_GAME, {
         usersChangedInGame: updatedGame,
       });
-      return updatedGame.users;
+      logger.info("User removed from game");
+      return user;
     },
     async updateUser(_, { user, gameId }, { pubsub }) {
       const userToUpdate = new User(user);
@@ -93,17 +100,19 @@ export const resolvers = {
         gameId,
         userToUpdate
       );
-      await pubsub.publish(USED_CHANGED_IN_GAME, {
+      await pubsub.publish(USER_CHANGED_IN_GAME, {
         usersChangedInGame: updatedGame,
       });
-      return updatedGame.users;
+      return updatedGame.users.find(
+        (gamePlayer: User) => user.id === gamePlayer.id
+      );
     },
   },
   Subscription: {
     usersChangedInGame: {
       subscribe: withFilter(
         (parent, args, { pubsub, user }) =>
-          pubsub.asyncIterator([USED_CHANGED_IN_GAME]),
+          pubsub.asyncIterator([USER_CHANGED_IN_GAME]),
         (payload, variables) => {
           logger.info(`Users changed in ${variables.gameId}`);
           return payload.usersChangedInGame.id === variables.gameId;

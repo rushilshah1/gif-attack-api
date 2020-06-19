@@ -20,11 +20,13 @@ export const typeDefs = gql`
     roundChanged(gameId: ID!): Round
   }
 `;
-
+//TODO: Have next roundROund mutation change roundNumber and clearSubmittedGifs
+//Add roundStarted field in game
+//have roundChanged subscription return game?
 export const resolvers = {
   Mutation: {
     async nextRound(_, { round, gameId }, { pubsub }) {
-      const game: Game = await gameAttributesService.updateRoundNumber(
+      const game: Game = await gameAttributesService.nextRound(
         gameId,
         round.roundNumber
       );

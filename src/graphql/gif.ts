@@ -13,26 +13,32 @@ const GIF_CHANGED = "GIF_CHANGED";
 //gif is actually a big object will be stringified and parsed using String
 export const typeDefs = gql`
   type Gif {
-    id: ID
+    id: ID!
     gifId: ID!
     content: String!
     userId: ID!
-    gifSearchText: String
-    numVotes: Int
+    gifSearchText: String!
+    numVotes: Int!
   }
-  input GifInput {
-    id: ID
+  input AddGifInput {
     gifId: ID!
     content: String!
     userId: ID!
     gifSearchText: String
-    numVotes: Int
   }
 
+  input ModifyGifInput {
+    id: ID!
+    gifId: ID!
+    content: String!
+    userId: ID!
+    gifSearchText: String!
+    numVotes: Int!
+  }
   extend type Mutation {
-    createGif(gif: GifInput!, gameId: ID!): [Gif]
-    removeGif(gif: GifInput!, gameId: ID!): [Gif]
-    updateGif(gif: GifInput!, gameId: ID!): [Gif]
+    createGif(gif: AddGifInput!, gameId: ID!): Gif
+    removeGif(gif: ModifyGifInput!, gameId: ID!): Gif
+    updateGif(gif: ModifyGifInput!, gameId: ID!): Gif
     # votedForGif(input: GifInput!): Gif
     # unvotedForGif(input: GifInput!): Gif
   }
@@ -57,7 +63,7 @@ export const resolvers = {
         gifChanged: game,
       });
       logger.info("Gif Submited/Created");
-      return game.submittedGifs;
+      return game.submittedGifs[game.submittedGifs.length - 1];
     },
     async removeGif(_, { gif, gameId }, { pubsub }) {
       const deleteGif: SubmittedGif = new SubmittedGif(gif);
@@ -68,7 +74,7 @@ export const resolvers = {
       await pubsub.publish(GIF_CHANGED, {
         gifChanged: game,
       });
-      return game.submittedGifs;
+      return gif;
     },
     async updateGif(_, { gif, gameId }, { pubsub }) {
       const updatedGif: SubmittedGif = new SubmittedGif(gif);
@@ -79,7 +85,9 @@ export const resolvers = {
       await pubsub.publish(GIF_CHANGED, {
         gifChanged: game,
       });
-      return game.submittedGifs;
+      return game.submittedGifs.find(
+        (submittedGif: SubmittedGif) => submittedGif.id === gif.id
+      );
     },
   },
   Subscription: {

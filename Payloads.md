@@ -26,7 +26,7 @@ mutation {
 
 ```
 mutation {
-	addUser(user:{ name: "RS"}, gameId: "c1EjRDQKx") {
+	addUser(user:{ name: "RS"}, gameId: "2XMAb-g-d") {
     id
     name
     score

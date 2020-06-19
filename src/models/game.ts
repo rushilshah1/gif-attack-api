@@ -13,7 +13,10 @@ export class Game {
   users: Array<Ref<User>> = [];
 
   @prop({ default: false })
-  started: boolean;
+  gameStarted: boolean;
+
+  @prop({ default: false })
+  roundStarted: boolean;
 
   @prop({ default: "" })
   topic: string;
