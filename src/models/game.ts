@@ -16,7 +16,7 @@ export class Game {
   gameStarted: boolean;
 
   @prop({ default: false })
-  roundStarted: boolean;
+  roundActive: boolean;
 
   @prop({ default: "" })
   topic: string;
