@@ -6,7 +6,7 @@ import gameService from "../services/game.service";
 import { User } from "../models/User";
 import gameAttributesService from "../services/game-attributes.service";
 
-export const USER_CHANGED_IN_GAME: string = "USER_CHANGED_IN_GAME";
+export const GAME_STATE_CHANGED: string = "GAME_STATE_CHANGED";
 
 export const typeDefs = gql`
   type User {
@@ -18,7 +18,7 @@ export const typeDefs = gql`
     id: ID!
     users: [User]!
     gameStarted: Boolean!
-    roundStarted: Boolean!
+    roundActive: Boolean!
     topic: String!
     roundNumber: Int!
     submittedGifs: [Gif]!
@@ -45,7 +45,7 @@ export const typeDefs = gql`
     updateUser(user: ModifyUserInput!, gameId: ID!): User
   }
   extend type Subscription {
-    usersChangedInGame(gameId: ID!): Game
+    gameStateChanged(gameId: ID!): Game
   }
 `;
 
@@ -56,6 +56,7 @@ export const resolvers = {
       return game.users;
     },
     async getGameById(_, { gameId }) {
+      logger.info(`Get Game By id ${gameId}`);
       return gameService.getGameById(gameId);
     },
     async getGames(_) {
@@ -67,7 +68,11 @@ export const resolvers = {
       return gameService.createGame();
     },
     async startGame(_, { gameId }, { pubsub }) {
-      return gameService.startGame(gameId);
+      const startedGame: Game = await gameService.startGame(gameId);
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: startedGame,
+      });
+      return startedGame;
     },
     async addUser(_, { user, gameId }, { pubsub }) {
       const addedUser: User = new User({ name: user.name, score: 0 });
@@ -75,8 +80,8 @@ export const resolvers = {
         gameId,
         addedUser
       );
-      await pubsub.publish(USER_CHANGED_IN_GAME, {
-        usersChangedInGame: updatedGame,
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: updatedGame,
       });
       logger.info(`User added to game ${gameId}`);
       //Newest is added to end - TODO retrieve added user in mongo query
@@ -84,12 +89,13 @@ export const resolvers = {
     },
     async removeUser(root, { user, gameId }, { pubsub }, info) {
       const userId: string = user.id;
+      logger.info(`Removing user from game...${user.name}`);
       const updatedGame: Game = await gameAttributesService.removeUser(
         gameId,
         userId
       );
-      await pubsub.publish(USER_CHANGED_IN_GAME, {
-        usersChangedInGame: updatedGame,
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: updatedGame,
       });
       logger.info("User removed from game");
       return user;
@@ -100,8 +106,8 @@ export const resolvers = {
         gameId,
         userToUpdate
       );
-      await pubsub.publish(USER_CHANGED_IN_GAME, {
-        usersChangedInGame: updatedGame,
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: updatedGame,
       });
       return updatedGame.users.find(
         (gamePlayer: User) => user.id === gamePlayer.id
@@ -109,13 +115,13 @@ export const resolvers = {
     },
   },
   Subscription: {
-    usersChangedInGame: {
+    gameStateChanged: {
       subscribe: withFilter(
         (parent, args, { pubsub, user }) =>
-          pubsub.asyncIterator([USER_CHANGED_IN_GAME]),
+          pubsub.asyncIterator([GAME_STATE_CHANGED]),
         (payload, variables) => {
           logger.info(`Users changed in ${variables.gameId}`);
-          return payload.usersChangedInGame.id === variables.gameId;
+          return payload.gameStateChanged.id === variables.gameId;
         }
       ),
     },

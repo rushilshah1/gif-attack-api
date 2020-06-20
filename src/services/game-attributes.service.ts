@@ -4,6 +4,7 @@ import { logger } from "../common";
 import { User } from "../models/User";
 import { SubmittedGif } from "../models/SubmittedGif";
 import { ObjectId } from "bson";
+import { IRound } from "../models/Round";
 
 export class GameAttributesService {
   async removeUser(gameId: string, userId: any): Promise<Game> {
@@ -87,15 +88,31 @@ export class GameAttributesService {
     return game;
   }
 
-  async nextRound(gameId: string, newRoundNumber: number): Promise<Game> {
+  async newRound(gameId: string, newRound: IRound): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
         $set: {
-          roundNumber: newRoundNumber,
+          roundNumber: newRound.roundNumber,
           submittedGifs: [],
           topic: "",
-          roundStarted: false,
+          roundActive: newRound.roundActive,
+        },
+      },
+      { new: true }
+    );
+    if (!game) {
+      throw new UserInputError("Invalid game id");
+    }
+    return game;
+  }
+
+  async updateRoundStatus(gameId: string, newRound: IRound): Promise<Game> {
+    const game: Game = await GameModel.findByIdAndUpdate(
+      gameId,
+      {
+        $set: {
+          roundActive: newRound.roundActive,
         },
       },
       { new: true }
@@ -112,9 +129,6 @@ export class GameAttributesService {
       {
         $push: {
           submittedGifs: newGif,
-        },
-        $set: {
-          roundStarted: true,
         },
       },
       {
