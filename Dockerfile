@@ -1,4 +1,4 @@
-FROM node:14.4-buster-slim
+FROM node:12.7.0-alpine
 
 LABEL maintainer="rushilrshah1@gmail.com"
 
