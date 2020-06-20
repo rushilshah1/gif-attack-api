@@ -1,8 +1,8 @@
 import { gql } from "apollo-server-express";
 import { PubSub, withFilter } from "apollo-server";
 import { logger } from "../common";
-import gameAttributesService from "../services/game-attributes.service";
 import { Game } from "../models/Game";
+import gameAttributesService from "../services/game-attributes.service";
 
 const TOPIC_CHANGED = "TOPIC_CHANGED";
 
