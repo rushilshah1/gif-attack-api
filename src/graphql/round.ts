@@ -3,8 +3,8 @@ import { withFilter } from "apollo-server";
 import { logger } from "../common";
 import gameAttributesService from "../services/game-attributes.service";
 import { Game } from "../models/Game";
-import { IRound } from "../models/Round";
 import { GAME_STATE_CHANGED } from "./game";
+import { IRound } from "../models/Round";
 
 // const ROUND_CHANGED = "ROUND_CHANGED";
 
