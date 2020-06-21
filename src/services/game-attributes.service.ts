@@ -1,10 +1,10 @@
 import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
 import { logger } from "../common";
-import { IRound } from "../models/Round";
 import { SubmittedGif } from "../models/SubmittedGif";
 import { User } from "../models/User";
 import * as _ from "lodash";
+import { IRound } from "../models/Round";
 import userService from "./user.service";
 
 export class GameAttributesService {

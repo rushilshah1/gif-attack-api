@@ -1,9 +1,8 @@
 import { gql } from "apollo-server-express";
-import { PubSub, withFilter } from "apollo-server";
 import { logger } from "../common";
 import { SubmittedGif } from "../models/SubmittedGif";
-import gifService from "../services/gif.service";
 import { Game } from "../models/Game";
+import gifService from "../services/gif.service";
 
 const GAME_STATE_CHANGED = "GAME_STATE_CHANGED";
 // const GIF_DELETED = "GIF_DELETED";
