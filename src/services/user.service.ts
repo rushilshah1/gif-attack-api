@@ -2,9 +2,6 @@ import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
 import { logger } from "../common";
 import { User } from "../models/User";
-import { SubmittedGif } from "../models/SubmittedGif";
-import { ObjectId } from "bson";
-import { IRound } from "../models/Round";
 import gameAttributesService from "./game-attributes.service";
 
 export class UserService {
