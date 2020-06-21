@@ -4,8 +4,9 @@ import { logger } from "../common";
 
 import { Game } from "../models/Game";
 import gameAttributesService from "../services/game-attributes.service";
+import { GAME_STATE_CHANGED } from "./game";
 
-const TOPIC_CHANGED = "TOPIC_CHANGED";
+// const TOPIC_CHANGED = "TOPIC_CHANGED";
 
 export const typeDefs = gql`
   type Topic {
@@ -18,9 +19,9 @@ export const typeDefs = gql`
     updateTopic(topicInput: TopicInput!, gameId: ID!): String
     removeTopic(gameId: ID!): String
   }
-  extend type Subscription {
-    topicChanged(gameId: ID!): Topic
-  }
+  # extend type Subscription {
+  #   topicChanged(gameId: ID!): Topic
+  # }
 `;
 
 export const resolvers = {
@@ -30,28 +31,28 @@ export const resolvers = {
         gameId,
         topicInput.topic
       );
-      await pubsub.publish(TOPIC_CHANGED, {
-        topicChanged: game,
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: game,
       });
       return game.topic;
     },
     async removeTopic(_, { gameId }, { pubsub }) {
       const game: Game = await gameAttributesService.removeTopic(gameId);
-      await pubsub.publish(TOPIC_CHANGED, {
-        topicChanged: game,
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: game,
       });
       return game.topic;
     },
   },
-  Subscription: {
-    topicChanged: {
-      subscribe: withFilter(
-        (parent, args, { pubsub }) => pubsub.asyncIterator([TOPIC_CHANGED]),
-        (payload, variables) => {
-          logger.info(`Subscribing to topic`);
-          return payload.topicChanged.id === variables.gameId;
-        }
-      ),
-    },
-  },
+  // Subscription: {
+  //   topicChanged: {
+  //     subscribe: withFilter(
+  //       (parent, args, { pubsub }) => pubsub.asyncIterator([TOPIC_CHANGED]),
+  //       (payload, variables) => {
+  //         logger.info(`Subscribing to topic`);
+  //         return payload.topicChanged.id === variables.gameId;
+  //       }
+  //     ),
+  //   },
+  // },
 };

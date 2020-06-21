@@ -2,10 +2,10 @@ import { gql } from "apollo-server-express";
 import { PubSub, withFilter } from "apollo-server";
 import { logger } from "../common";
 import { SubmittedGif } from "../models/SubmittedGif";
-import gameAttributesService from "../services/game-attributes.service";
+import gifService from "../services/gif.service";
 import { Game } from "../models/Game";
 
-const GIF_CHANGED = "GIF_CHANGED";
+const GAME_STATE_CHANGED = "GAME_STATE_CHANGED";
 // const GIF_DELETED = "GIF_DELETED";
 // const VOTE_ADDED = "VOTE_ADDED";
 // const VOTE_REMOVED = "VOTE_REMOVED";
@@ -39,51 +39,39 @@ export const typeDefs = gql`
     createGif(gif: AddGifInput!, gameId: ID!): Gif
     removeGif(gif: ModifyGifInput!, gameId: ID!): Gif
     updateGif(gif: ModifyGifInput!, gameId: ID!): Gif
-    # votedForGif(input: GifInput!): Gif
-    # unvotedForGif(input: GifInput!): Gif
   }
-  extend type Subscription {
-    gifChanged(gameId: ID!): Game
-    # gifCreated(gameId: ID!): Gif
-    # gifDeleted(gameId: ID!): Gif
-    # gifVoteAdded(gameId: ID!): Gif
-    # gifVoteRemoved(gameId: ID!): Gif
-  }
+  # extend type Subscription {
+  #   gifChanged(gameId: ID!): Game
+  # }
 `;
 
 export const resolvers = {
   Mutation: {
     async createGif(_, { gif, gameId }, { pubsub }) {
       const newGif: SubmittedGif = new SubmittedGif(gif);
-      const game: Game = await gameAttributesService.addSubmittedGif(
-        gameId,
-        newGif
-      );
-      await pubsub.publish(GIF_CHANGED, {
-        gifChanged: game,
+      const game: Game = await gifService.addSubmittedGif(gameId, newGif);
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: game,
       });
       logger.info("Gif Submited/Created");
       return game.submittedGifs[game.submittedGifs.length - 1];
     },
     async removeGif(_, { gif, gameId }, { pubsub }) {
       const deleteGif: SubmittedGif = new SubmittedGif(gif);
-      const game: Game = await gameAttributesService.removeSubmittedGif(
-        gameId,
-        deleteGif
-      );
-      await pubsub.publish(GIF_CHANGED, {
-        gifChanged: game,
+      const game: Game = await gifService.removeSubmittedGif(gameId, deleteGif);
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: game,
       });
       return gif;
     },
     async updateGif(_, { gif, gameId }, { pubsub }) {
       const updatedGif: SubmittedGif = new SubmittedGif(gif);
-      const game: Game = await gameAttributesService.updateSubmittedGif(
+      const game: Game = await gifService.updateSubmittedGif(
         gameId,
         updatedGif
       );
-      await pubsub.publish(GIF_CHANGED, {
-        gifChanged: game,
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: game,
       });
       return game.submittedGifs.find(
         (submittedGif: SubmittedGif) => submittedGif.id === gif.id
@@ -91,41 +79,14 @@ export const resolvers = {
     },
   },
   Subscription: {
-    gifChanged: {
-      subscribe: withFilter(
-        (parent, args, { pubsub }) => pubsub.asyncIterator([GIF_CHANGED]),
-        (payload, variables) => {
-          logger.info("Gif Changed subscription started");
-          return payload.gifChanged.id === variables.gameId;
-        }
-      ),
-    },
-    //  gifDeleted: {
-    //    subscribe: withFilter(
-    //      (parent, args, { pubsub }) =>
-    //        pubsub.asyncIterator([GIF_CHANGED]),
-    //      (payload, variables) => {
-    //        return payload.gifDeleted.gameId === variables.gameId;
-    //      }
-    //    ),
-    //  },
-    //  gifVoteAdded: {
-    //    subscribe: withFilter(
-    //      (parent, args, { pubsub }) => pubsub.asyncIterator([VOTE_ADDED]),
-    //      (payload, variables) => {
-    //        logger.info("Gif Vote subscription started");
-    //        return payload.gifVoteAdded.gameId === variables.gameId;
-    //      }
-    //    ),
-    //  },
-    //  gifVoteRemoved: {
-    //    subscribe: withFilter(
-    //      (parent, args, { pubsub }) =>
-    //        pubsub.asyncIterator([VOTE_REMOVED]),
-    //      (payload, variables) => {
-    //        return payload.gifVoteRemoved.gameId === variables.gameId;
-    //      }
-    //    ),
-    //  },
+    // gifChanged: {
+    //   subscribe: withFilter(
+    //     (parent, args, { pubsub }) => pubsub.asyncIterator(["GIF_CHANGED"]),
+    //     (payload, variables) => {
+    //       logger.info("Gif Changed subscription started");
+    //       return payload.gameStateChanged.id === variables.gameId;
+    //     }
+    //   ),
+    // },
   },
 };

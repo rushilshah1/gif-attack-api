@@ -6,7 +6,7 @@ import { Game } from "../models/Game";
 import { IRound } from "../models/Round";
 import { GAME_STATE_CHANGED } from "./game";
 
-const ROUND_CHANGED = "ROUND_CHANGED";
+// const ROUND_CHANGED = "ROUND_CHANGED";
 
 export const typeDefs = gql`
   type Round {
@@ -24,42 +24,42 @@ export const typeDefs = gql`
     updateRoundStatus(round: UpdateRoundInput!, gameId: ID!): Boolean!
     newRound(round: NewRoundInput!, gameId: ID!): Round!
   }
-  extend type Subscription {
-    roundChanged(gameId: ID!): Game
-  }
+  # extend type Subscription {
+  #   roundChanged(gameId: ID!): Game
+  # }
 `;
-//TODO: Have next roundROund mutation change roundNumber and clearSubmittedGifs
-//Add roundActive field in game
-//have roundChanged subscription return game?
+
 export const resolvers = {
   Mutation: {
-    async newRound(_, { round, gameId }, { pubsub }) {
+    async newRound(_, { round, gameId }, { pubsub, user }) {
       const game: Game = await gameAttributesService.newRound(gameId, round);
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: game,
       });
+      logger.info(`Creating a new round by ${user}`);
       return game as IRound;
     },
-    async updateRoundStatus(_, { round, gameId }, { pubsub }) {
+    async updateRoundStatus(_, { round, gameId }, { pubsub, user }) {
       const game: Game = await gameAttributesService.updateRoundStatus(
         gameId,
-        round
+        round.roundActive
       );
-      await pubsub.publish(ROUND_CHANGED, {
-        roundChanged: game,
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: game,
       });
+      logger.info(`Round status changed by ${user}`);
       return game.roundActive;
     },
   },
-  Subscription: {
-    roundChanged: {
-      subscribe: withFilter(
-        (parent, variables, { pubsub, user }) =>
-          pubsub.asyncIterator([ROUND_CHANGED]),
-        (payload, variables, { pubsub, user }) => {
-          return payload.roundChanged.id === variables.gameId;
-        }
-      ),
-    },
-  },
+  // Subscription: {
+  //   roundChanged: {
+  //     subscribe: withFilter(
+  //       (parent, variables, { pubsub, user }) =>
+  //         pubsub.asyncIterator([ROUND_CHANGED]),
+  //       (payload, variables, { pubsub, user }) => {
+  //         return payload.roundChanged.id === variables.gameId;
+  //       }
+  //     ),
+  //   },
+  // },
 };
