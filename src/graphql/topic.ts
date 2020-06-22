@@ -2,8 +2,8 @@ import { gql } from "apollo-server-express";
 import { PubSub, withFilter } from "apollo-server";
 import { logger } from "../common";
 import { Game } from "../models/Game";
-import gameAttributesService from "../services/game-attributes.service";
 import { GAME_STATE_CHANGED } from "./game";
+import topicService from "../services/topic.service";
 
 // const TOPIC_CHANGED = "TOPIC_CHANGED";
 
@@ -26,7 +26,7 @@ export const typeDefs = gql`
 export const resolvers = {
   Mutation: {
     async updateTopic(_, { topicInput, gameId }, { pubsub }) {
-      const game: Game = await gameAttributesService.updateTopic(
+      const game: Game = await topicService.updateTopic(
         gameId,
         topicInput.topic
       );
@@ -36,7 +36,7 @@ export const resolvers = {
       return game.topic;
     },
     async removeTopic(_, { gameId }, { pubsub }) {
-      const game: Game = await gameAttributesService.removeTopic(gameId);
+      const game: Game = await topicService.removeTopic(gameId);
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: game,
       });

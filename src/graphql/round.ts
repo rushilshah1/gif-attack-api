@@ -1,17 +1,22 @@
 import { gql } from "apollo-server-express";
 import { withFilter } from "apollo-server";
 import { logger } from "../common";
-import gameAttributesService from "../services/game-attributes.service";
 import { Game } from "../models/Game";
 import { GAME_STATE_CHANGED } from "./game";
 import { IRound } from "../models/Round";
+import roundService from "../services/round.service";
 
-// const ROUND_CHANGED = "ROUND_CHANGED";
+export const ROUND_CLOCK = "ROUND_CLOCK";
 
 export const typeDefs = gql`
   type Round {
     roundNumber: Int!
     roundActive: Boolean!
+  }
+  type Clock {
+    minutes: Int!
+    seconds: Int!
+    gameId: String
   }
   input NewRoundInput {
     roundNumber: Int!
@@ -24,15 +29,15 @@ export const typeDefs = gql`
     updateRoundStatus(round: UpdateRoundInput!, gameId: ID!): Boolean!
     newRound(round: NewRoundInput!, gameId: ID!): Round!
   }
-  # extend type Subscription {
-  #   roundChanged(gameId: ID!): Game
-  # }
+  extend type Subscription {
+    roundClock(gameId: ID!): Clock
+  }
 `;
 
 export const resolvers = {
   Mutation: {
     async newRound(_, { round, gameId }, { pubsub, user }) {
-      const game: Game = await gameAttributesService.newRound(gameId, round);
+      const game: Game = await roundService.newRound(gameId, round, pubsub);
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: game,
       });
@@ -40,7 +45,7 @@ export const resolvers = {
       return game as IRound;
     },
     async updateRoundStatus(_, { round, gameId }, { pubsub, user }) {
-      const game: Game = await gameAttributesService.updateRoundStatus(
+      const game: Game = await roundService.updateRoundStatus(
         gameId,
         round.roundActive
       );
@@ -51,15 +56,18 @@ export const resolvers = {
       return game.roundActive;
     },
   },
-  // Subscription: {
-  //   roundChanged: {
-  //     subscribe: withFilter(
-  //       (parent, variables, { pubsub, user }) =>
-  //         pubsub.asyncIterator([ROUND_CHANGED]),
-  //       (payload, variables, { pubsub, user }) => {
-  //         return payload.roundChanged.id === variables.gameId;
-  //       }
-  //     ),
-  //   },
-  // },
+  Subscription: {
+    roundClock: {
+      subscribe: withFilter(
+        (parent, variables, { pubsub, user }) =>
+          pubsub.asyncIterator([ROUND_CLOCK]),
+        (payload, variables, { pubsub, user }) => {
+          logger.info(
+            `Round clock subscription getting hit for game: ${payload.roundClock.gameId}`
+          );
+          return payload.roundClock.gameId === variables.gameId;
+        }
+      ),
+    },
+  },
 };
