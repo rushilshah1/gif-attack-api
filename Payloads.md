@@ -153,6 +153,15 @@ mutation{
 }
 ```
 
+```
+mutation {
+	newRound(round: { roundNumber: 0, roundActive: true}, gameId: "_YwzegpcO") {
+    roundNumber
+    roundActive
+  }
+}
+```
+
 ## Topic
 
 ### Subscription
@@ -170,5 +179,16 @@ subscription{
 ```
 mutation{
   updateTopic(gameId: "c1EjRDQKx", topicInput: {topic: "yoyoy"})
+}
+```
+
+### Clock
+
+```
+subscription {
+  roundClock(gameId: "_YwzegpcO") {
+    minutes
+    seconds
+  }
 }
 ```

@@ -2,7 +2,7 @@ import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
 import { logger } from "../common";
 import { User } from "../models/User";
-import gameAttributesService from "./game-attributes.service";
+import roundService from "./round.service";
 
 export class UserService {
   async removeUser(gameId: string, userId: any): Promise<Game> {
@@ -20,7 +20,7 @@ export class UserService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
-    return await gameAttributesService.updateIfRoundCompleted(game);
+    return await roundService.updateIfRoundCompleted(game);
   }
 
   async addUser(gameId: string, userToAdd: User): Promise<Game> {
@@ -40,7 +40,7 @@ export class UserService {
       throw new UserInputError("Invalid game id");
     }
 
-    return await gameAttributesService.updateIfRoundCompleted(game);
+    return await roundService.updateIfRoundCompleted(game);
   }
 
   async updateUser(gameId: string, userToUpdate: User): Promise<Game> {

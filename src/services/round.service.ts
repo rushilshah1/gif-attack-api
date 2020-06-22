@@ -1,38 +1,23 @@
+import { IRound, IClock } from "../models/Round";
 import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
-import { logger } from "../common";
-import { SubmittedGif } from "../models/SubmittedGif";
 import { User } from "../models/User";
-import * as _ from "lodash";
-import { IRound } from "../models/Round";
+import { SubmittedGif } from "../models/SubmittedGif";
+import { logger } from "../common";
 import userService from "./user.service";
+import * as _ from "lodash";
+import { ROUND_CLOCK } from "../graphql/round";
 
-export class GameAttributesService {
-  async updateTopic(gameId: string, topic: string): Promise<Game> {
-    const game: Game = await GameModel.findByIdAndUpdate(
-      gameId,
-      { $set: { topic: topic } },
-      { new: true }
-    );
-    if (!game) {
-      throw new UserInputError("Invalid game id");
-    }
-    return game;
-  }
+//const pubsub: PubSub = new PubSub();
 
-  async removeTopic(gameId: string): Promise<Game> {
-    const game: Game = await GameModel.findByIdAndUpdate(
-      gameId,
-      { $set: { topic: "" } },
-      { new: true }
-    );
-    if (!game) {
-      throw new UserInputError("Invalid game id");
-    }
-    return game;
-  }
+export class RoundService {
+  interval: NodeJS.Timeout;
 
-  async newRound(gameId: string, newRound: IRound): Promise<Game> {
+  async newRound(
+    gameId: string,
+    newRound: IRound,
+    pubsub: PubSub
+  ): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -48,6 +33,8 @@ export class GameAttributesService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
+    logger.info("Starting round clock");
+    this.startRoundClock(game.id, pubsub);
     return game;
   }
 
@@ -67,9 +54,54 @@ export class GameAttributesService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
+    logger.info("CLEAR INTERVAL");
+    clearInterval(this.interval);
     return game;
   }
 
+  async updateIfRoundCompleted(game: Game): Promise<Game> {
+    //Rules for determing if round is over
+    const numVotes: number = game.submittedGifs.reduce(
+      (sum: number, currentGif: SubmittedGif) => sum + currentGif.numVotes,
+      0
+    );
+    if (game.users.length === numVotes) {
+      logger.info("The round is over...Round Active is being set to false");
+      let updatedGame: Game = await this.updateRoundStatus(game.id, false);
+      const winningUsers: Array<User> = this.getWinners(updatedGame);
+      //logger.info(winningUsers);
+      //TODO: If more winners use Promise.all() with map function for parallel updating
+      //Or have updateUsers function in service
+      logger.info(`There are ${winningUsers.length} winners`);
+      for (let user of winningUsers) {
+        updatedGame = await userService.updateUser(game.id, user);
+      }
+      return updatedGame;
+    } else {
+      //Round is not over yet
+      return game;
+    }
+  }
+
+  startRoundClock(gameId: string, pubsub: PubSub) {
+    let clock: IClock = { gameId: gameId, minutes: 2, seconds: 59 };
+    this.interval = setInterval(async () => {
+      if (clock.seconds > 0) {
+        clock = { ...clock, seconds: clock.seconds - 1 };
+      }
+      if (clock.seconds === 0) {
+        if (clock.minutes === 0) {
+          clearInterval(this.interval);
+        } else {
+          clock = { ...clock, seconds: 59, minutes: clock.minutes - 1 };
+        }
+      }
+      pubsub.publish(ROUND_CLOCK, {
+        roundClock: clock,
+      });
+      //logger.info(clock);
+    }, 1000);
+  }
   private getWinners(game: Game): Array<User> {
     const players: Array<User> = <Array<User>>game.users;
     const sortedGifs: Array<SubmittedGif> = <Array<SubmittedGif>>(
@@ -108,29 +140,5 @@ export class GameAttributesService {
 
     return winningPlayers;
   }
-
-  async updateIfRoundCompleted(game: Game): Promise<Game> {
-    //Rules for determing if round is over
-    const numVotes: number = game.submittedGifs.reduce(
-      (sum: number, currentGif: SubmittedGif) => sum + currentGif.numVotes,
-      0
-    );
-    if (game.users.length === numVotes) {
-      logger.info("The round is over...Round Active is being set to false");
-      let updatedGame: Game = await this.updateRoundStatus(game.id, false);
-      const winningUsers: Array<User> = this.getWinners(updatedGame);
-      //logger.info(winningUsers);
-      //TODO: If more winners use Promise.all() with map function for parallel updating
-      //Or have updateUsers function in service
-      logger.info(`There are ${winningUsers.length} winners`);
-      for (let user of winningUsers) {
-        updatedGame = await userService.updateUser(game.id, user);
-      }
-      return updatedGame;
-    } else {
-      //Round is not over yet
-      return game;
-    }
-  }
 }
-export default new GameAttributesService();
+export default new RoundService();

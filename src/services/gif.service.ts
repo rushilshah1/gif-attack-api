@@ -1,7 +1,7 @@
 import { Game, GameModel } from "../models/Game";
 import { UserInputError } from "apollo-server";
 import { SubmittedGif } from "../models/SubmittedGif";
-import gameAttributesService from "./game-attributes.service";
+import roundService from "./round.service";
 
 export class GifService {
   async addSubmittedGif(gameId: string, newGif: SubmittedGif): Promise<Game> {
@@ -64,7 +64,7 @@ export class GifService {
     if (!game) {
       throw new UserInputError("Invalid game id or gif id provided");
     }
-    return await gameAttributesService.updateIfRoundCompleted(game);
+    return await roundService.updateIfRoundCompleted(game);
   }
 }
 export default new GifService();
