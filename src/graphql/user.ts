@@ -4,8 +4,7 @@ import { Game } from "../models/Game";
 import gameService from "../services/game.service";
 import { User } from "../models/User";
 import userService from "../services/user.service";
-
-export const GAME_STATE_CHANGED: string = "GAME_STATE_CHANGED";
+import { GAME_STATE_CHANGED } from "./game";
 
 export const typeDefs = gql`
   type User {

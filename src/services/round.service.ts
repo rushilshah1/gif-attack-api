@@ -7,8 +7,7 @@ import { logger } from "../common";
 import userService from "./user.service";
 import * as _ from "lodash";
 import { ROUND_CLOCK } from "../graphql/round";
-
-//const pubsub: PubSub = new PubSub();
+import { GAME_STATE_CHANGED } from "../graphql/game";
 
 export class RoundService {
   interval: NodeJS.Timeout;
@@ -42,6 +41,9 @@ export class RoundService {
     gameId: string,
     roundActiveStatus: boolean
   ): Promise<Game> {
+    if (!roundActiveStatus) {
+      logger.info("The round is over...Round Active is being set to false");
+    }
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -54,9 +56,10 @@ export class RoundService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
-    logger.info("CLEAR INTERVAL");
+    //Clear the timer interval
     clearInterval(this.interval);
-    return game;
+
+    return roundActiveStatus ? game : await this.updateWinningUsers(game);
   }
 
   async updateIfRoundCompleted(game: Game): Promise<Game> {
@@ -66,16 +69,7 @@ export class RoundService {
       0
     );
     if (game.users.length === numVotes) {
-      logger.info("The round is over...Round Active is being set to false");
-      let updatedGame: Game = await this.updateRoundStatus(game.id, false);
-      const winningUsers: Array<User> = this.getWinners(updatedGame);
-      //logger.info(winningUsers);
-      //TODO: If more winners use Promise.all() with map function for parallel updating
-      //Or have updateUsers function in service
-      logger.info(`There are ${winningUsers.length} winners`);
-      for (let user of winningUsers) {
-        updatedGame = await userService.updateUser(game.id, user);
-      }
+      const updatedGame: Game = await this.updateRoundStatus(game.id, false);
       return updatedGame;
     } else {
       //Round is not over yet
@@ -84,13 +78,22 @@ export class RoundService {
   }
 
   startRoundClock(gameId: string, pubsub: PubSub) {
-    let clock: IClock = { gameId: gameId, minutes: 2, seconds: 59 };
+    let clock: IClock =
+      process.env.ENV === "local"
+        ? { gameId: gameId, minutes: 0, seconds: 31 }
+        : { gameId: gameId, minutes: 3, seconds: 1 };
     this.interval = setInterval(async () => {
       if (clock.seconds > 0) {
         clock = { ...clock, seconds: clock.seconds - 1 };
       }
       if (clock.seconds === 0) {
         if (clock.minutes === 0) {
+          //Timer has run out
+          logger.info("Timer has run out...Updating Round status");
+          const updatedGame: Game = await this.updateRoundStatus(gameId, false);
+          pubsub.publish(GAME_STATE_CHANGED, {
+            gameStateChanged: updatedGame,
+          });
           clearInterval(this.interval);
         } else {
           clock = { ...clock, seconds: 59, minutes: clock.minutes - 1 };
@@ -99,11 +102,27 @@ export class RoundService {
       pubsub.publish(ROUND_CLOCK, {
         roundClock: clock,
       });
-      //logger.info(clock);
     }, 1000);
+  }
+
+  private async updateWinningUsers(game: Game): Promise<Game> {
+    const winningUsers: Array<User> = this.getWinners(game);
+    //logger.info(winningUsers);
+    //TODO: If more winners use Promise.all() with map function for parallel updating
+    //Or have updateUsers function in service
+    let updatedGame: Game = game;
+    logger.info(`There are ${winningUsers.length} winners`);
+    for (let user of winningUsers) {
+      updatedGame = await userService.updateUser(game.id, user);
+    }
+    return updatedGame;
   }
   private getWinners(game: Game): Array<User> {
     const players: Array<User> = <Array<User>>game.users;
+    if (!game.submittedGifs || !game.submittedGifs.length) {
+      //If no submitted gifs
+      return [];
+    }
     const sortedGifs: Array<SubmittedGif> = <Array<SubmittedGif>>(
       game.submittedGifs.sort(
         (a: SubmittedGif, b: SubmittedGif) => b.numVotes - a.numVotes

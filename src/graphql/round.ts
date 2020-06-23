@@ -62,9 +62,6 @@ export const resolvers = {
         (parent, variables, { pubsub, user }) =>
           pubsub.asyncIterator([ROUND_CLOCK]),
         (payload, variables, { pubsub, user }) => {
-          logger.info(
-            `Round clock subscription getting hit for game: ${payload.roundClock.gameId}`
-          );
           return payload.roundClock.gameId === variables.gameId;
         }
       ),
