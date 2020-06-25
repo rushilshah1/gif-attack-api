@@ -1,10 +1,9 @@
 import { gql } from "apollo-server-express";
-import { logger } from "../common";
+import { logger, GAME_STATE_CHANGED } from "../common";
 import { Game } from "../models/Game";
 import gameService from "../services/game.service";
 import { User } from "../models/User";
 import userService from "../services/user.service";
-import { GAME_STATE_CHANGED } from "./game";
 
 export const typeDefs = gql`
   type User {

@@ -60,5 +60,17 @@ export class UserService {
     }
     return game;
   }
+
+  async updateWinningUsers(
+    gameId: string,
+    winningUsers: Array<User>
+  ): Promise<Game> {
+    let updatedGame: Game;
+    for (let player of winningUsers) {
+      player.score += 1;
+      updatedGame = await this.updateUser(gameId, player);
+    }
+    return updatedGame;
+  }
 }
 export default new UserService();

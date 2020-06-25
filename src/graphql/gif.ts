@@ -1,14 +1,10 @@
 import { gql } from "apollo-server-express";
-import { logger } from "../common";
+import { logger, GAME_STATE_CHANGED } from "../common";
 import { SubmittedGif } from "../models/SubmittedGif";
 import { Game } from "../models/Game";
 import gifService from "../services/gif.service";
-const GAME_STATE_CHANGED = "GAME_STATE_CHANGED";
-// const GIF_DELETED = "GIF_DELETED";
-// const VOTE_ADDED = "VOTE_ADDED";
-// const VOTE_REMOVED = "VOTE_REMOVED";
 
-//gif is actually a big object will be stringified and parsed using String
+//content is actually a big object will be stringified and parsed back on the UI to render gif content
 export const typeDefs = gql`
   type Gif {
     id: ID!
@@ -17,6 +13,7 @@ export const typeDefs = gql`
     userId: ID!
     gifSearchText: String!
     numVotes: Int!
+    isWinner: Boolean!
   }
   input AddGifInput {
     gifId: ID!
@@ -32,15 +29,13 @@ export const typeDefs = gql`
     userId: ID!
     gifSearchText: String!
     numVotes: Int!
+    isWinner: Boolean!
   }
   extend type Mutation {
     createGif(gif: AddGifInput!, gameId: ID!): Gif
     removeGif(gif: ModifyGifInput!, gameId: ID!): Gif
     updateGif(gif: ModifyGifInput!, gameId: ID!): Gif
   }
-  # extend type Subscription {
-  #   gifChanged(gameId: ID!): Game
-  # }
 `;
 
 export const resolvers = {
@@ -75,16 +70,5 @@ export const resolvers = {
         (submittedGif: SubmittedGif) => submittedGif.id === gif.id
       );
     },
-  },
-  Subscription: {
-    // gifChanged: {
-    //   subscribe: withFilter(
-    //     (parent, args, { pubsub }) => pubsub.asyncIterator(["GIF_CHANGED"]),
-    //     (payload, variables) => {
-    //       logger.info("Gif Changed subscription started");
-    //       return payload.gameStateChanged.id === variables.gameId;
-    //     }
-    //   ),
-    // },
   },
 };

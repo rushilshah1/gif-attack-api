@@ -1,8 +1,7 @@
 import { gql } from "apollo-server-express";
 import { withFilter } from "apollo-server";
-import { logger } from "../common";
+import { logger, GAME_STATE_CHANGED } from "../common";
 import { Game } from "../models/Game";
-import { GAME_STATE_CHANGED } from "./game";
 import { IRound } from "../models/Round";
 import roundService from "../services/round.service";
 
