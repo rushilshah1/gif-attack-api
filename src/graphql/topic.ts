@@ -1,11 +1,8 @@
 import { gql } from "apollo-server-express";
 import { PubSub, withFilter } from "apollo-server";
-import { logger } from "../common";
+import { logger, GAME_STATE_CHANGED } from "../common";
 import { Game } from "../models/Game";
-import { GAME_STATE_CHANGED } from "./game";
 import topicService from "../services/topic.service";
-
-// const TOPIC_CHANGED = "TOPIC_CHANGED";
 
 export const typeDefs = gql`
   type Topic {
@@ -18,9 +15,6 @@ export const typeDefs = gql`
     updateTopic(topicInput: TopicInput!, gameId: ID!): String
     removeTopic(gameId: ID!): String
   }
-  # extend type Subscription {
-  #   topicChanged(gameId: ID!): Topic
-  # }
 `;
 
 export const resolvers = {
@@ -43,15 +37,4 @@ export const resolvers = {
       return game.topic;
     },
   },
-  // Subscription: {
-  //   topicChanged: {
-  //     subscribe: withFilter(
-  //       (parent, args, { pubsub }) => pubsub.asyncIterator([TOPIC_CHANGED]),
-  //       (payload, variables) => {
-  //         logger.info(`Subscribing to topic`);
-  //         return payload.topicChanged.id === variables.gameId;
-  //       }
-  //     ),
-  //   },
-  // },
 };

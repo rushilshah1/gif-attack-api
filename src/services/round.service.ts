@@ -3,11 +3,10 @@ import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
 import { User } from "../models/User";
 import { SubmittedGif } from "../models/SubmittedGif";
-import { logger } from "../common";
+import { logger, GAME_STATE_CHANGED } from "../common";
 import userService from "./user.service";
 import * as _ from "lodash";
 import { ROUND_CLOCK } from "../graphql/round";
-import { GAME_STATE_CHANGED } from "../graphql/game";
 import gifService from "./gif.service";
 import gameService from "./game.service";
 
