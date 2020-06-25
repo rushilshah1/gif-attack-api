@@ -17,6 +17,7 @@ export const typeDefs = gql`
     userId: ID!
     gifSearchText: String!
     numVotes: Int!
+    isWinner: Boolean!
   }
   input AddGifInput {
     gifId: ID!
@@ -32,15 +33,13 @@ export const typeDefs = gql`
     userId: ID!
     gifSearchText: String!
     numVotes: Int!
+    isWinner: Boolean!
   }
   extend type Mutation {
     createGif(gif: AddGifInput!, gameId: ID!): Gif
     removeGif(gif: ModifyGifInput!, gameId: ID!): Gif
     updateGif(gif: ModifyGifInput!, gameId: ID!): Gif
   }
-  # extend type Subscription {
-  #   gifChanged(gameId: ID!): Game
-  # }
 `;
 
 export const resolvers = {

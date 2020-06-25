@@ -8,6 +8,8 @@ import userService from "./user.service";
 import * as _ from "lodash";
 import { ROUND_CLOCK } from "../graphql/round";
 import { GAME_STATE_CHANGED } from "../graphql/game";
+import gifService from "./gif.service";
+import gameService from "./game.service";
 
 export class RoundService {
   interval: NodeJS.Timeout;
@@ -37,6 +39,7 @@ export class RoundService {
     return game;
   }
 
+  /**Updates the round status. If round active status is set to false, the winning players and gifs will also be updated */
   async updateRoundStatus(
     gameId: string,
     roundActiveStatus: boolean
@@ -59,22 +62,7 @@ export class RoundService {
     //Clear the timer interval
     clearInterval(this.interval);
 
-    return roundActiveStatus ? game : await this.updateWinningUsers(game);
-  }
-
-  async updateIfRoundCompleted(game: Game): Promise<Game> {
-    //Rules for determing if round is over
-    const numVotes: number = game.submittedGifs.reduce(
-      (sum: number, currentGif: SubmittedGif) => sum + currentGif.numVotes,
-      0
-    );
-    if (game.users.length === numVotes) {
-      const updatedGame: Game = await this.updateRoundStatus(game.id, false);
-      return updatedGame;
-    } else {
-      //Round is not over yet
-      return game;
-    }
+    return roundActiveStatus ? game : await this.updateRoundWinners(game);
   }
 
   startRoundClock(gameId: string, pubsub: PubSub) {
@@ -105,59 +93,49 @@ export class RoundService {
     }, 1000);
   }
 
-  private async updateWinningUsers(game: Game): Promise<Game> {
-    const winningUsers: Array<User> = this.getWinners(game);
-    //logger.info(winningUsers);
-    //TODO: If more winners use Promise.all() with map function for parallel updating
-    //Or have updateUsers function in service
-    let updatedGame: Game = game;
-    logger.info(`There are ${winningUsers.length} winners`);
-    for (let user of winningUsers) {
-      updatedGame = await userService.updateUser(game.id, user);
+  async updateIfRoundCompleted(game: Game): Promise<Game> {
+    if (!game.roundActive) {
+      //Round is already completed, no update required
+      return game;
     }
-    return updatedGame;
+    //Rules for determing if round is over
+    const numVotes: number = game.submittedGifs.reduce(
+      (sum: number, currentGif: SubmittedGif) => sum + currentGif.numVotes,
+      0
+    );
+    if (game.users.length === numVotes) {
+      const updatedGame: Game = await this.updateRoundStatus(game.id, false);
+      return updatedGame;
+    } else {
+      //Round is not over yet
+      return game;
+    }
   }
-  private getWinners(game: Game): Array<User> {
+  /**Updates the isWinner flag and score of submitted gifs and winning players respectively */
+  private async updateRoundWinners(game: Game): Promise<Game> {
     const players: Array<User> = <Array<User>>game.users;
-    if (!game.submittedGifs || !game.submittedGifs.length) {
-      //If no submitted gifs
-      return [];
+    const winningGifs: Array<SubmittedGif> = gifService.getWinningGifs(game);
+    if (!winningGifs || !winningGifs.length) {
+      return game;
     }
-    const sortedGifs: Array<SubmittedGif> = <Array<SubmittedGif>>(
-      game.submittedGifs.sort(
-        (a: SubmittedGif, b: SubmittedGif) => b.numVotes - a.numVotes
-      )
-    );
-    const maxVotes: number = sortedGifs[0].numVotes;
-    const victoryLine: number = _.findLastIndex(
-      sortedGifs,
-      (gif: SubmittedGif) => gif.numVotes === maxVotes
-    );
-    const winnerGifs: Array<SubmittedGif> = sortedGifs.slice(
-      0,
-      victoryLine + 1
-    );
-    const consolidationGifs: Array<SubmittedGif> = sortedGifs.slice(
-      victoryLine + 1
+    logger.info(`There are ${winningGifs.length} winners`);
+    //There are winningGifs - proceed to update gif isWinner tag and player score
+    let updatedGame: Game = await gifService.updateWinnerGifs(
+      game.id,
+      winningGifs
     );
     const winningUserIds: Set<string> = new Set(
-      winnerGifs.map((gif: SubmittedGif) => gif.userId)
+      winningGifs.map((gif: SubmittedGif) => gif.userId)
     );
-    //Rules for winning the round
-    //If you are the single and clear winner
-    //TODO: Factor in tie/ multiple winners
     let winningPlayers: Array<User> = [];
-    if (winnerGifs.length === 1) {
-      winningPlayers = players.filter((player: User) =>
-        winningUserIds.has(player.id.toString())
-      );
-      winningPlayers = winningPlayers.map((player: User) => {
-        player.score += 1;
-        return player;
-      });
-    }
-
-    return winningPlayers;
+    winningPlayers = players.filter((player: User) =>
+      winningUserIds.has(player.id.toString())
+    );
+    updatedGame = await userService.updateWinningUsers(
+      updatedGame.id,
+      winningPlayers
+    );
+    return updatedGame;
   }
 }
 export default new RoundService();

@@ -21,6 +21,9 @@ export class SubmittedGif {
   @prop({ default: 0 })
   numVotes: number;
 
+  @prop({ default: false })
+  isWinner: boolean;
+
   constructor(gif?: Partial<SubmittedGif>) {
     Object.assign(this, gif);
   }
