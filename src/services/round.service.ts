@@ -61,7 +61,7 @@ export class RoundService {
     }
     //Clear the timer interval
     logger.info(`Clearing the timer for ${gameId}`);
-    clearInterval(this.gameIntervalMap.get(gameId));
+    this.clearGameTimer(gameId);
 
     return roundActiveStatus ? game : await this.updateRoundWinners(game);
   }
@@ -83,8 +83,6 @@ export class RoundService {
           pubsub.publish(GAME_STATE_CHANGED, {
             gameStateChanged: updatedGame,
           });
-          logger.info(`Clearing the timer for ${gameId}`);
-          clearInterval(this.gameIntervalMap.get(gameId));
         } else {
           clock = { ...clock, seconds: 59, minutes: clock.minutes - 1 };
         }
@@ -102,7 +100,7 @@ export class RoundService {
       //Round is already completed, no update required
       return game;
     }
-    //Rules for determing if round is over
+    //Round is over if everyone in the game has voted
     const numVotes: number = game.submittedGifs.reduce(
       (sum: number, currentGif: SubmittedGif) => sum + currentGif.numVotes,
       0
@@ -115,6 +113,16 @@ export class RoundService {
       return game;
     }
   }
+  private clearGameTimer(gameId: string): boolean {
+    const gameInterval: NodeJS.Timeout = this.gameIntervalMap.get(gameId);
+    if (gameInterval) {
+      clearInterval(this.gameIntervalMap.get(gameId));
+      this.gameIntervalMap.delete(gameId);
+      return true;
+    }
+    return false;
+  }
+
   /**Updates the isWinner flag and score of submitted gifs and winning players respectively */
   private async updateRoundWinners(game: Game): Promise<Game> {
     const players: Array<User> = <Array<User>>game.users;
