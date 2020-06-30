@@ -11,7 +11,8 @@ import gifService from "./gif.service";
 import gameService from "./game.service";
 
 export class RoundService {
-  interval: NodeJS.Timeout;
+  //Track running intervals for each game so they can be created and cleared accordingly
+  gameIntervalMap: Map<string, NodeJS.Timeout> = new Map();
 
   async newRound(
     gameId: string,
@@ -59,7 +60,8 @@ export class RoundService {
       throw new UserInputError("Invalid game id");
     }
     //Clear the timer interval
-    clearInterval(this.interval);
+    logger.info(`Clearing the timer for ${gameId}`);
+    clearInterval(this.gameIntervalMap.get(gameId));
 
     return roundActiveStatus ? game : await this.updateRoundWinners(game);
   }
@@ -69,7 +71,7 @@ export class RoundService {
       process.env.ENV === "local"
         ? { gameId: gameId, minutes: 0, seconds: 31 }
         : { gameId: gameId, minutes: 3, seconds: 1 };
-    this.interval = setInterval(async () => {
+    let interval: NodeJS.Timeout = setInterval(async () => {
       if (clock.seconds > 0) {
         clock = { ...clock, seconds: clock.seconds - 1 };
       }
@@ -81,7 +83,8 @@ export class RoundService {
           pubsub.publish(GAME_STATE_CHANGED, {
             gameStateChanged: updatedGame,
           });
-          clearInterval(this.interval);
+          logger.info(`Clearing the timer for ${gameId}`);
+          clearInterval(this.gameIntervalMap.get(gameId));
         } else {
           clock = { ...clock, seconds: 59, minutes: clock.minutes - 1 };
         }
@@ -90,6 +93,8 @@ export class RoundService {
         roundClock: clock,
       });
     }, 1000);
+    logger.info(`Adding a new timer to ${gameId}`)
+    this.gameIntervalMap.set(gameId, interval);
   }
 
   async updateIfRoundCompleted(game: Game): Promise<Game> {
