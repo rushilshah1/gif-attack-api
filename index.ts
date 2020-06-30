@@ -1,13 +1,12 @@
-// configuring environment variables
 import * as dotenv from "dotenv";
 import * as express from "express";
+import * as cors from "cors";
+import * as os from "os";
 import { createServer } from "http";
 import { ApolloServer, PubSub } from "apollo-server-express";
 import { typeDefs, resolvers, context } from "./src/graphql";
 import { database } from "./src/common/db";
 import { logger } from "./src/common/logger";
-import * as cors from "cors";
-import * as os from "os";
 
 dotenv.config();
 const PORT = 4000;
@@ -57,12 +56,12 @@ connectToDB()
     httpServer.listen({ port: PORT }, () => {
       console.log(
         `🚀 Server ready in ${
-          process.env.ENV
+        process.env.ENV
         } at ${os.hostname()} on port ${PORT}`
       );
       console.log(
         `🚀 Subscriptions ready in ${
-          process.env.ENV
+        process.env.ENV
         } at ${os.hostname()} on port ${PORT}`
       );
     });
