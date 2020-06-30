@@ -1,13 +1,16 @@
-import { prop, getModelForClass, Ref, arrayProp } from "@typegoose/typegoose";
+import { prop, getModelForClass, Ref, arrayProp, index } from "@typegoose/typegoose";
 import { User } from "./User";
 import * as shortid from "shortid";
 import { SubmittedGif } from "./SubmittedGif";
 
+@index({ "createdAt": 1 }, { expireAfterSeconds: 10800 })
 export class Game {
+  readonly id: string;
+  readonly updatedAt: Date;
+  readonly createdAt: Date;
+
   @prop({ default: shortid.generate })
   readonly _id: string;
-
-  readonly id: string;
 
   @arrayProp({ items: User })
   users: Array<Ref<User>> = [];
@@ -33,5 +36,5 @@ export class Game {
 }
 
 export const GameModel = getModelForClass(Game, {
-  schemaOptions: { timestamps: true },
+  schemaOptions: { timestamps: true, autoIndex: true, autoCreate: true },
 });

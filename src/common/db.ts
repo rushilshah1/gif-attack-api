@@ -21,6 +21,8 @@ export class Database {
       useUnifiedTopology: true,
       useCreateIndex: true,
       useFindAndModify: false,
+      autoIndex: true,
+      autoCreate: true
     };
     logger.info(
       `Attempting to connect to mongodb at ${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}...`
