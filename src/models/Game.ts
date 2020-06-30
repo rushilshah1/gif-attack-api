@@ -3,7 +3,7 @@ import { User } from "./User";
 import * as shortid from "shortid";
 import { SubmittedGif } from "./SubmittedGif";
 
-@index({ "createdAt": 1 }, { expireAfterSeconds: 10800 })
+@index({ "createdAt": 1 }, { expireAfterSeconds: 14400 })
 export class Game {
   readonly id: string;
   readonly updatedAt: Date;
