@@ -8,7 +8,6 @@ import userService from "./user.service";
 import * as _ from "lodash";
 import { ROUND_CLOCK } from "../graphql/round";
 import gifService from "./gif.service";
-import gameService from "./game.service";
 
 export class RoundService {
   //Track running intervals for each game so they can be created and cleared accordingly
@@ -34,7 +33,6 @@ export class RoundService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
-    logger.info("Starting round clock");
     this.startRoundClock(game.id, pubsub);
     return game;
   }
@@ -44,9 +42,6 @@ export class RoundService {
     gameId: string,
     roundActiveStatus: boolean
   ): Promise<Game> {
-    if (!roundActiveStatus) {
-      logger.info("The round is over...Round Active is being set to false");
-    }
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -60,9 +55,7 @@ export class RoundService {
       throw new UserInputError("Invalid game id");
     }
     //Clear the timer interval
-    logger.info(`Clearing the timer for ${gameId}`);
     this.clearGameTimer(gameId);
-
     return roundActiveStatus ? game : await this.updateRoundWinners(game);
   }
 
@@ -70,7 +63,9 @@ export class RoundService {
     let clock: IClock =
       process.env.ENV === "local"
         ? { gameId: gameId, minutes: 0, seconds: 31 }
-        : { gameId: gameId, minutes: 3, seconds: 1 };
+        : { gameId: gameId, minutes: 4, seconds: 1 };
+
+    this.clearGameTimer(gameId); //Clear previous timer if there is one
     let interval: NodeJS.Timeout = setInterval(async () => {
       if (clock.seconds > 0) {
         clock = { ...clock, seconds: clock.seconds - 1 };
@@ -116,7 +111,8 @@ export class RoundService {
   private clearGameTimer(gameId: string): boolean {
     const gameInterval: NodeJS.Timeout = this.gameIntervalMap.get(gameId);
     if (gameInterval) {
-      clearInterval(this.gameIntervalMap.get(gameId));
+      logger.info(`Clearing the timer for ${gameId}`)
+      clearInterval(gameInterval);
       this.gameIntervalMap.delete(gameId);
       return true;
     }
