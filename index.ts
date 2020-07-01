@@ -26,7 +26,7 @@ const connectToDB = async () => {
 const app = express();
 const pubsub = new PubSub();
 
-app.use(cors({ credentials: true, origin: process.env.WHITELISTED_ORIGIN }));
+app.use(cors({ credentials: true, origin: process.env.WHITELISTED_ORIGIN.split(",") }));
 app.use(bodyParser.json());
 app.use(bodyParser.text());
 
@@ -47,7 +47,7 @@ apolloServer.applyMiddleware({
   app,
   cors: {
     credentials: true,
-    origin: process.env.WHITELISTED_ORIGIN,
+    origin: process.env.WHITELISTED_ORIGIN.split(","),
   },
 });
 
