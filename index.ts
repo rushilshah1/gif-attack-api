@@ -2,6 +2,7 @@ import * as dotenv from "dotenv";
 import * as express from "express";
 import * as cors from "cors";
 import * as os from "os";
+import * as bodyParser from 'body-parser';
 import { createServer } from "http";
 import { ApolloServer, PubSub } from "apollo-server-express";
 import { typeDefs, resolvers, context } from "./src/graphql";
@@ -25,11 +26,14 @@ const connectToDB = async () => {
 const app = express();
 const pubsub = new PubSub();
 
-app.use(cors());
+app.use(cors({ credentials: true, origin: process.env.WHITELISTED_ORIGIN }));
+app.use(bodyParser.json());
+app.use(bodyParser.text());
+
 //Configure simple health check
 app.get("/", function (req, res) {
   res.send({
-    message: "Server is up and running!!!",
+    message: "Server is up and running!",
     environment: process.env.ENV,
   });
 });
@@ -43,7 +47,7 @@ apolloServer.applyMiddleware({
   app,
   cors: {
     credentials: true,
-    origin: true,
+    origin: process.env.WHITELISTED_ORIGIN,
   },
 });
 
