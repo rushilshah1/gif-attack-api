@@ -3,10 +3,11 @@ import { UserInputError, PubSub } from "apollo-server";
 import { logger } from "../common";
 import { User } from "../models/User";
 import roundService from "./round.service";
+import gifService from "./gif.service";
 
 export class UserService {
   async removeUser(gameId: string, userId: any): Promise<Game> {
-    const game: Game = await GameModel.findByIdAndUpdate(
+    let game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
         $pull: {
@@ -20,6 +21,7 @@ export class UserService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
+    game = await gifService.removeUserSubmittedGif(gameId, userId);
     return await roundService.updateIfRoundCompleted(game);
   }
 

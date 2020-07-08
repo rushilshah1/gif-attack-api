@@ -35,6 +35,7 @@ export const typeDefs = gql`
     createGif(gif: AddGifInput!, gameId: ID!): Gif
     removeGif(gif: ModifyGifInput!, gameId: ID!): Gif
     updateGif(gif: ModifyGifInput!, gameId: ID!): Gif
+    voteForGif(gifId: ID!, gameId: ID!): Gif
   }
 `;
 
@@ -46,7 +47,6 @@ export const resolvers = {
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: game,
       });
-      logger.info("Gif Submited/Created");
       return game.submittedGifs[game.submittedGifs.length - 1];
     },
     async removeGif(_, { gif, gameId }, { pubsub }) {
@@ -70,5 +70,17 @@ export const resolvers = {
         (submittedGif: SubmittedGif) => submittedGif.id === gif.id
       );
     },
+    async voteForGif(_, { gifId, gameId }, { pubsub }) {
+      const game: Game = await gifService.voteForGif(
+        gameId,
+        gifId
+      );
+      await pubsub.publish(GAME_STATE_CHANGED, {
+        gameStateChanged: game,
+      });
+      return game.submittedGifs.find(
+        (submittedGif: SubmittedGif) => submittedGif.id === gifId
+      );
+    }
   },
 };

@@ -3,6 +3,7 @@ import { UserInputError } from "apollo-server";
 import { SubmittedGif } from "../models/SubmittedGif";
 import * as _ from "lodash";
 import roundService from "./round.service";
+import gameService from "./game.service";
 
 export class GifService {
   async addSubmittedGif(gameId: string, newGif: SubmittedGif): Promise<Game> {
@@ -24,10 +25,7 @@ export class GifService {
     return game;
   }
 
-  async removeSubmittedGif(
-    gameId: string,
-    deleteGif: SubmittedGif
-  ): Promise<Game> {
+  async removeSubmittedGif(gameId: string, deleteGif: SubmittedGif): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -45,10 +43,25 @@ export class GifService {
     return game;
   }
 
-  async updateSubmittedGif(
-    gameId: string,
-    updatedGif: SubmittedGif
-  ): Promise<Game> {
+  async removeUserSubmittedGif(gameId: string, userId: string): Promise<Game> {
+    const game: Game = await GameModel.findByIdAndUpdate(
+      gameId,
+      {
+        $pull: {
+          submittedGifs: { userId: userId },
+        },
+      },
+      {
+        new: true,
+      }
+    );
+    if (!game) {
+      throw new UserInputError("Invalid game id");
+    }
+    return game;
+  }
+
+  async updateSubmittedGif(gameId: string, updatedGif: SubmittedGif): Promise<Game> {
     const game: Game = await GameModel.findOneAndUpdate(
       { _id: gameId, "submittedGifs._id": { $in: [updatedGif.id] } },
       {
@@ -69,10 +82,14 @@ export class GifService {
     return await roundService.updateIfRoundCompleted(game);
   }
 
-  async updateWinnerGifs(
-    gameId: string,
-    winningGifs: Array<SubmittedGif>
-  ): Promise<Game> {
+  async voteForGif(gameId: string, gifId: any): Promise<Game> {
+    const currentGame: Game = await gameService.getGameById(gameId);
+    const gifToVoteFor: SubmittedGif = (<Array<SubmittedGif>>currentGame.submittedGifs).find(
+      (submittedGif) => submittedGif.id === gifId);
+    gifToVoteFor.numVotes += 1;
+    return await this.updateSubmittedGif(gameId, gifToVoteFor);
+  }
+  async updateWinnerGifs(gameId: string, winningGifs: Array<SubmittedGif>): Promise<Game> {
     let updatedGame: Game;
     for (let winningGif of winningGifs) {
       winningGif.isWinner = true;
@@ -87,23 +104,15 @@ export class GifService {
       return [];
     }
     const sortedGifs: Array<SubmittedGif> = <Array<SubmittedGif>>(
-      game.submittedGifs.sort(
-        (a: SubmittedGif, b: SubmittedGif) => b.numVotes - a.numVotes
-      )
+      game.submittedGifs.sort((a: SubmittedGif, b: SubmittedGif) => b.numVotes - a.numVotes)
     );
     const maxVotes: number = sortedGifs[0].numVotes;
     if (maxVotes === 0) {
       //No one voted
       return [];
     }
-    const victoryLine: number = _.findLastIndex(
-      sortedGifs,
-      (gif: SubmittedGif) => gif.numVotes === maxVotes
-    );
-    const winningGifs: Array<SubmittedGif> = sortedGifs.slice(
-      0,
-      victoryLine + 1
-    );
+    const victoryLine: number = _.findLastIndex(sortedGifs, (gif: SubmittedGif) => gif.numVotes === maxVotes);
+    const winningGifs: Array<SubmittedGif> = sortedGifs.slice(0, victoryLine + 1);
     return winningGifs;
   }
 }
