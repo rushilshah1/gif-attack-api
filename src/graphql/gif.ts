@@ -39,11 +39,6 @@ export const typeDefs = gql`
   }
 `;
 
-function sleep(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 export const resolvers = {
   Mutation: {
     async createGif(_, { gif, gameId }, { pubsub }) {
@@ -52,7 +47,6 @@ export const resolvers = {
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: game,
       });
-      logger.info("Gif Submited/Created");
       return game.submittedGifs[game.submittedGifs.length - 1];
     },
     async removeGif(_, { gif, gameId }, { pubsub }) {
@@ -64,7 +58,6 @@ export const resolvers = {
       return gif;
     },
     async updateGif(_, { gif, gameId }, { pubsub }) {
-      await sleep(2000)
       const updatedGif: SubmittedGif = new SubmittedGif(gif);
       const game: Game = await gifService.updateSubmittedGif(
         gameId,
@@ -78,7 +71,6 @@ export const resolvers = {
       );
     },
     async voteForGif(_, { gifId, gameId }, { pubsub }) {
-      await sleep(3000);
       const game: Game = await gifService.voteForGif(
         gameId,
         gifId

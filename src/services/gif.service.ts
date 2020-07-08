@@ -25,10 +25,7 @@ export class GifService {
     return game;
   }
 
-  async removeSubmittedGif(
-    gameId: string,
-    deleteGif: SubmittedGif
-  ): Promise<Game> {
+  async removeSubmittedGif(gameId: string, deleteGif: SubmittedGif): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {

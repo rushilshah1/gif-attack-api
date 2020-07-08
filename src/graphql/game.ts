@@ -30,7 +30,6 @@ export const typeDefs = gql`
 export const resolvers = {
   Query: {
     async getGameById(_, { gameId }) {
-      logger.info(`Get Game By id ${gameId}`);
       return gameService.getGameById(gameId);
     },
     async getGames(_) {
