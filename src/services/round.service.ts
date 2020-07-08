@@ -62,7 +62,7 @@ export class RoundService {
   startRoundClock(gameId: string, pubsub: PubSub) {
     let clock: IClock =
       process.env.ENV === "local"
-        ? { gameId: gameId, minutes: 0, seconds: 31 }
+        ? { gameId: gameId, minutes: 0, seconds: 59 }
         : { gameId: gameId, minutes: 4, seconds: 1 };
 
     this.clearGameTimer(gameId); //Clear previous timer if there is one
