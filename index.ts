@@ -24,13 +24,11 @@ const connectToDB = async () => {
 };
 
 const app = express();
-const pubsub = new PubSub();
-
 app.use(cors({ credentials: true, origin: process.env.WHITELISTED_ORIGIN.split(",") }));
 app.use(bodyParser.json());
 app.use(bodyParser.text());
 
-//Configure simple health check
+//Health check
 app.get("/", function (req, res) {
   res.send({
     message: "Server is up and running!",
@@ -54,20 +52,11 @@ apolloServer.applyMiddleware({
 const httpServer = createServer(app);
 apolloServer.installSubscriptionHandlers(httpServer);
 
-// start listening
 connectToDB()
   .then(async () => {
     httpServer.listen({ port: PORT }, () => {
-      console.log(
-        `🚀 Server ready in ${
-        process.env.ENV
-        } at ${os.hostname()} on port ${PORT}`
-      );
-      console.log(
-        `🚀 Subscriptions ready in ${
-        process.env.ENV
-        } at ${os.hostname()} on port ${PORT}`
-      );
+      logger.info(`🚀 Server ready in ${process.env.ENV} at ${os.hostname()} on port ${PORT}`);
+      logger.info(`🚀 Subscriptions ready in ${process.env.ENV} at ${os.hostname()} on port ${PORT}`);
     });
   })
   .catch((err) => logger.error(`Error connecting to database: ${err}`));
