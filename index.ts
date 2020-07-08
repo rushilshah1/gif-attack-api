@@ -12,14 +12,12 @@ import { logger } from "./src/common/logger";
 dotenv.config();
 const PORT = 4000;
 
-const connectToDB = async () => {
+const connectToDB = async (): Promise<boolean> => {
   try {
     return database.connect();
   } catch (err) {
-    logger.fatal(
-      `Error connecting to database. Please make sure database is running. ${err}`
-    );
-    throw err;
+    logger.fatal(`Error connecting to database. Please make sure database is running. ${err}`);
+    process.exit(1);
   }
 };
 

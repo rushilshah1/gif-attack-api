@@ -1,6 +1,5 @@
-import { prop, getModelForClass, Ref } from "@typegoose/typegoose";
+import { prop } from "@typegoose/typegoose";
 import { ObjectID } from "bson";
-import { User } from "./User";
 
 export class SubmittedGif {
   readonly _id: ObjectID;
