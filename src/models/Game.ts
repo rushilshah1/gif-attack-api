@@ -1,6 +1,6 @@
+import * as shortid from "shortid";
 import { prop, getModelForClass, Ref, arrayProp, index } from "@typegoose/typegoose";
 import { User } from "./User";
-import * as shortid from "shortid";
 import { SubmittedGif } from "./SubmittedGif";
 
 @index({ "createdAt": 1 }, { expireAfterSeconds: 14400 })

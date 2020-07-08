@@ -1,7 +1,7 @@
 import * as pino from "pino";
 
 export const logger = pino({
-    name: process.env.APP_ID,
+    name: "gif-attack-api",
     prettyPrint: {
         forceColor: true,
     },

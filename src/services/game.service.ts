@@ -1,6 +1,5 @@
 import { Game, GameModel } from "../models/Game";
-import { UserInputError, PubSub } from "apollo-server";
-import { logger } from "../common";
+import { UserInputError } from "apollo-server";
 
 export class GameService {
   async getGames(): Promise<Array<Game>> {

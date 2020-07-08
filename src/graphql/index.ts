@@ -5,7 +5,6 @@ import * as game from "./game";
 import * as round from "./round";
 import * as user from "./user";
 import { merge } from "lodash";
-import { logger } from "../common";
 
 const pubsub = new PubSub();
 

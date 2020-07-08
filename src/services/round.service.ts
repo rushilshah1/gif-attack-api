@@ -11,13 +11,9 @@ import gifService from "./gif.service";
 
 export class RoundService {
   //Track running intervals for each game so they can be created and cleared accordingly
-  gameIntervalMap: Map<string, NodeJS.Timeout> = new Map();
+  private gameIntervalMap: Map<string, NodeJS.Timeout> = new Map();
 
-  async newRound(
-    gameId: string,
-    newRound: IRound,
-    pubsub: PubSub
-  ): Promise<Game> {
+  async newRound(gameId: string, newRound: IRound, pubsub: PubSub): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -38,10 +34,7 @@ export class RoundService {
   }
 
   /**Updates the round status. If round active status is set to false, the winning players and gifs will also be updated */
-  async updateRoundStatus(
-    gameId: string,
-    roundActiveStatus: boolean
-  ): Promise<Game> {
+  async updateRoundStatus(gameId: string, roundActiveStatus: boolean): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -60,20 +53,15 @@ export class RoundService {
   }
 
   startRoundClock(gameId: string, pubsub: PubSub) {
-    let clock: IClock =
-      process.env.ENV === "local"
-        ? { gameId: gameId, minutes: 0, seconds: 59 }
-        : { gameId: gameId, minutes: 4, seconds: 1 };
-
-    this.clearGameTimer(gameId); //Clear previous timer if there is one
+    let clock: IClock = { gameId: gameId, minutes: +process.env.TIMER_MINUTES, seconds: +process.env.TIMER_SECONDS };
+    this.clearGameTimer(gameId);
     let interval: NodeJS.Timeout = setInterval(async () => {
       if (clock.seconds > 0) {
         clock = { ...clock, seconds: clock.seconds - 1 };
       }
-      if (clock.seconds === 0) {
+      else if (clock.seconds === 0) {
         if (clock.minutes === 0) {
           //Timer has run out
-          logger.info("Timer has run out...Updating Round status");
           const updatedGame: Game = await this.updateRoundStatus(gameId, false);
           pubsub.publish(GAME_STATE_CHANGED, {
             gameStateChanged: updatedGame,
@@ -86,32 +74,24 @@ export class RoundService {
         roundClock: clock,
       });
     }, 1000);
-    logger.info(`Adding a new timer to ${gameId}`)
     this.gameIntervalMap.set(gameId, interval);
   }
 
   async updateIfRoundCompleted(game: Game): Promise<Game> {
-    if (!game.roundActive) {
-      //Round is already completed, no update required
+    if (!game.roundActive) { //Round is already completed, no update required      
       return game;
     }
-    //Round is over if everyone in the game has voted
-    const numVotes: number = game.submittedGifs.reduce(
-      (sum: number, currentGif: SubmittedGif) => sum + currentGif.numVotes,
-      0
-    );
-    if (game.users.length === numVotes) {
+    const numVotes: number = game.submittedGifs.reduce((sum: number, currentGif: SubmittedGif) => sum + currentGif.numVotes, 0);
+    if (game.users.length === numVotes) { //Round is over if everyone in the game has voted
       const updatedGame: Game = await this.updateRoundStatus(game.id, false);
       return updatedGame;
-    } else {
-      //Round is not over yet
+    } else { //Round is not over yet      
       return game;
     }
   }
   private clearGameTimer(gameId: string): boolean {
     const gameInterval: NodeJS.Timeout = this.gameIntervalMap.get(gameId);
     if (gameInterval) {
-      logger.info(`Clearing the timer for ${gameId}`)
       clearInterval(gameInterval);
       this.gameIntervalMap.delete(gameId);
       return true;
@@ -119,30 +99,22 @@ export class RoundService {
     return false;
   }
 
-  /**Updates the isWinner flag and score of submitted gifs and winning players respectively */
+  /* Updates the isWinner flag and score of gifs and users respectively */
   private async updateRoundWinners(game: Game): Promise<Game> {
     const players: Array<User> = <Array<User>>game.users;
     const winningGifs: Array<SubmittedGif> = gifService.getWinningGifs(game);
     if (!winningGifs || !winningGifs.length) {
       return game;
     }
-    logger.info(`There are ${winningGifs.length} winners`);
     //There are winningGifs - proceed to update gif isWinner tag and player score
     let updatedGame: Game = await gifService.updateWinnerGifs(
       game.id,
       winningGifs
     );
-    const winningUserIds: Set<string> = new Set(
-      winningGifs.map((gif: SubmittedGif) => gif.userId)
-    );
+    const winningUserIds: Set<string> = new Set(winningGifs.map((gif: SubmittedGif) => gif.userId));
     let winningPlayers: Array<User> = [];
-    winningPlayers = players.filter((player: User) =>
-      winningUserIds.has(player.id.toString())
-    );
-    updatedGame = await userService.updateWinningUsers(
-      updatedGame.id,
-      winningPlayers
-    );
+    winningPlayers = players.filter((player: User) => winningUserIds.has(player.id.toString()));
+    updatedGame = await userService.updateWinningUsers(updatedGame.id, winningPlayers);
     return updatedGame;
   }
 }

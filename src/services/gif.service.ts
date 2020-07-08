@@ -43,7 +43,7 @@ export class GifService {
     return game;
   }
 
-  async removeUserSubmittedGif(gameId: string, userId: string): Promise<Game> {
+  async removeUsersGif(gameId: string, userId: string): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -84,8 +84,7 @@ export class GifService {
 
   async voteForGif(gameId: string, gifId: any): Promise<Game> {
     const currentGame: Game = await gameService.getGameById(gameId);
-    const gifToVoteFor: SubmittedGif = (<Array<SubmittedGif>>currentGame.submittedGifs).find(
-      (submittedGif) => submittedGif.id === gifId);
+    const gifToVoteFor: SubmittedGif = (<Array<SubmittedGif>>currentGame.submittedGifs).find((submittedGif) => submittedGif.id === gifId);
     gifToVoteFor.numVotes += 1;
     return await this.updateSubmittedGif(gameId, gifToVoteFor);
   }
@@ -99,16 +98,12 @@ export class GifService {
   }
   /** Retrieves all submitted gifs with the highest votes */
   getWinningGifs(game: Game): Array<SubmittedGif> {
-    if (!game.submittedGifs || !game.submittedGifs.length) {
-      //If no submitted gifs
+    if (!game.submittedGifs || !game.submittedGifs.length) { //If no submitted gifs
       return [];
     }
-    const sortedGifs: Array<SubmittedGif> = <Array<SubmittedGif>>(
-      game.submittedGifs.sort((a: SubmittedGif, b: SubmittedGif) => b.numVotes - a.numVotes)
-    );
+    const sortedGifs: Array<SubmittedGif> = <Array<SubmittedGif>>(game.submittedGifs.sort((a: SubmittedGif, b: SubmittedGif) => b.numVotes - a.numVotes));
     const maxVotes: number = sortedGifs[0].numVotes;
-    if (maxVotes === 0) {
-      //No one voted
+    if (maxVotes === 0) { //No one voted
       return [];
     }
     const victoryLine: number = _.findLastIndex(sortedGifs, (gif: SubmittedGif) => gif.numVotes === maxVotes);
