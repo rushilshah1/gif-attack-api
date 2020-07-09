@@ -12,8 +12,7 @@ export class Database {
     const MONGO_PORT = process.env.MONGO_PORT;
     const MONGO_DB = process.env.MONGO_DB;
 
-    const userPassCombination =
-      MONGO_USER && MONGO_PASS ? `${MONGO_USER}:${MONGO_PASS}@` : "";
+    const userPassCombination = MONGO_USER && MONGO_PASS ? `${MONGO_USER}:${MONGO_PASS}@` : "";
 
     const mongoUrl = `mongodb://${userPassCombination}${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
     const connectionOptions = {
@@ -24,13 +23,9 @@ export class Database {
       autoIndex: true,
       autoCreate: true
     };
-    logger.info(
-      `Attempting to connect to mongodb at ${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}...`
-    );
+    logger.info(`Attempting to connect to mongodb at ${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}...`);
     await mongoose.connect(mongoUrl, connectionOptions);
-    logger.info(
-      `Connected to mongodb at ${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}`
-    );
+    logger.info(`Connected to mongodb at ${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}`);
 
     return true;
   }

@@ -1,7 +1,6 @@
 import { gql } from "apollo-server-express";
 import { logger, GAME_STATE_CHANGED } from "../common";
 import { Game } from "../models/Game";
-import gameService from "../services/game.service";
 import { User } from "../models/User";
 import userService from "../services/user.service";
 
@@ -35,32 +34,24 @@ export const resolvers = {
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: updatedGame,
       });
-      logger.info(`User added to game ${gameId}`);
       //Newest is added to end
       return updatedGame.users[updatedGame.users.length - 1];
     },
-    async removeUser(root, { user, gameId }, { pubsub }, info) {
+    async removeUser(_, { user, gameId }, { pubsub }) {
       const userId: string = user.id;
-      logger.info(`Removing user from game...${user.name}`);
       const updatedGame: Game = await userService.removeUser(gameId, userId);
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: updatedGame,
       });
-      logger.info("User removed from game");
       return user;
     },
     async updateUser(_, { user, gameId }, { pubsub }) {
       const userToUpdate = new User(user);
-      const updatedGame: Game = await userService.updateUser(
-        gameId,
-        userToUpdate
-      );
+      const updatedGame: Game = await userService.updateUser(gameId, userToUpdate);
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: updatedGame,
       });
-      return updatedGame.users.find(
-        (gamePlayer: User) => user.id === gamePlayer.id
-      );
+      return updatedGame.users.find((gamePlayer: User) => user.id === gamePlayer.id);
     },
   },
 };

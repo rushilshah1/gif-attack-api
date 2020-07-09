@@ -1,5 +1,4 @@
 import { gql } from "apollo-server-express";
-import { PubSub, withFilter } from "apollo-server";
 import { logger, GAME_STATE_CHANGED } from "../common";
 import { Game } from "../models/Game";
 import topicService from "../services/topic.service";

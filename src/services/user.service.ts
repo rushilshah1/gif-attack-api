@@ -1,6 +1,5 @@
 import { Game, GameModel } from "../models/Game";
 import { UserInputError, PubSub } from "apollo-server";
-import { logger } from "../common";
 import { User } from "../models/User";
 import roundService from "./round.service";
 import gifService from "./gif.service";
@@ -21,7 +20,7 @@ export class UserService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
-    game = await gifService.removeUserSubmittedGif(gameId, userId);
+    game = await gifService.removeUsersGif(gameId, userId);
     return await roundService.updateIfRoundCompleted(game);
   }
 
@@ -46,7 +45,6 @@ export class UserService {
   }
 
   async updateUser(gameId: string, userToUpdate: User): Promise<Game> {
-    logger.info("Updating user");
     const game: Game = await GameModel.findOneAndUpdate(
       { _id: gameId, "users._id": { $in: [userToUpdate.id] } },
       {
@@ -63,10 +61,7 @@ export class UserService {
     return game;
   }
 
-  async updateWinningUsers(
-    gameId: string,
-    winningUsers: Array<User>
-  ): Promise<Game> {
+  async updateWinningUsers(gameId: string, winningUsers: Array<User>): Promise<Game> {
     let updatedGame: Game;
     for (let player of winningUsers) {
       player.score += 1;
