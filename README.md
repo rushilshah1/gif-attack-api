@@ -1,4 +1,8 @@
-Deploy changes to Elastic Beanstalk
+# gif-attack-api
+#### Run MongoDB Locally
+`mongod`
+#### Run server locally
+`npm run start`
+#### Deploy changes to Elastic Beanstalk
 `eb deploy`
-Run MongoDB Locally
-`mongod --dbpath=/Users/rushil1/data/db`
+
