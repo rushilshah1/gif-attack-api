@@ -1,6 +1,7 @@
 export interface IRound {
   roundNumber?: number;
   roundActive?: boolean;
+  submissionActive?: boolean;
 }
 
 export interface IClock {

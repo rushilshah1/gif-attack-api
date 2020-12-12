@@ -44,7 +44,7 @@ export const resolvers = {
   Mutation: {
     async createGif(_, { gif, gameId, userId }, { pubsub }) {
       const newGif: SubmittedGif = new SubmittedGif(gif);
-      let game: Game = await gifService.addSubmittedGif(gameId, newGif);
+      let game: Game = await gifService.addSubmittedGif(gameId, newGif, pubsub);
       game = await userService.markUserSubmission(userId, game);
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: game,

@@ -1,5 +1,5 @@
 import { Game, GameModel } from "../models/Game";
-import { UserInputError } from "apollo-server";
+import { UserInputError, PubSub } from "apollo-server";
 import { SubmittedGif } from "../models/SubmittedGif";
 import * as _ from "lodash";
 import roundService from "./round.service";
@@ -7,7 +7,7 @@ import gameService from "./game.service";
 import userService from "./user.service";
 
 export class GifService {
-  async addSubmittedGif(gameId: string, newGif: SubmittedGif): Promise<Game> {
+  async addSubmittedGif(gameId: string, newGif: SubmittedGif, pubsub: PubSub): Promise<Game> {
     const game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
@@ -23,7 +23,7 @@ export class GifService {
       throw new UserInputError("Invalid game id");
     }
 
-    return game;
+    return await roundService.updateIfSubmissionCompleted(game, pubsub);
   }
 
   async removeSubmittedGif(gameId: string, deleteGif: SubmittedGif): Promise<Game> {

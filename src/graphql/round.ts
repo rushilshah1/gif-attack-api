@@ -11,6 +11,7 @@ export const typeDefs = gql`
   type Round {
     roundNumber: Int!
     roundActive: Boolean!
+    submissionActive: Boolean!
   }
   type Clock {
     minutes: Int!
