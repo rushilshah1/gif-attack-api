@@ -11,6 +11,12 @@ export class User {
   @prop({ default: 0 })
   score: number;
 
+  @prop({ default: false })
+  hasSubmitted: boolean;
+
+  @prop({ default: '' })
+  votedGif: string;
+
   constructor(user?: Partial<User>) {
     Object.assign(this, user);
   }

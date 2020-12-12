@@ -49,7 +49,7 @@ export class RoundService {
     }
     //Clear the timer interval
     this.clearGameTimer(gameId);
-    return roundActiveStatus ? game : await this.updateRoundWinners(game);
+    return roundActiveStatus ? game : await this.updateRoundDetails(game);
   }
 
   startRoundClock(gameId: string, pubsub: PubSub) {
@@ -100,7 +100,8 @@ export class RoundService {
   }
 
   /* Updates the isWinner flag and score of gifs and users respectively */
-  private async updateRoundWinners(game: Game): Promise<Game> {
+  private async updateRoundDetails(game: Game): Promise<Game> {
+    game = await userService.clearUserRoundAttributes(game.id, <Array<User>>game.users);
     const players: Array<User> = <Array<User>>game.users;
     const winningGifs: Array<SubmittedGif> = gifService.getWinningGifs(game);
     if (!winningGifs || !winningGifs.length) {

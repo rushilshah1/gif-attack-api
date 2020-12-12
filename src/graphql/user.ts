@@ -9,6 +9,8 @@ export const typeDefs = gql`
     id: ID!
     name: String!
     score: Int!
+    hasSubmitted: Boolean!
+    votedGif: String!
   }
   input AddUserInput {
     name: String!
@@ -18,6 +20,8 @@ export const typeDefs = gql`
     id: ID!
     name: String!
     score: Int!
+    hasSubmitted: Boolean!
+    votedGif: String!
   }
   extend type Mutation {
     addUser(user: AddUserInput!, gameId: ID!): User
@@ -29,7 +33,7 @@ export const typeDefs = gql`
 export const resolvers = {
   Mutation: {
     async addUser(_, { user, gameId }, { pubsub }) {
-      const addedUser: User = new User({ name: user.name, score: 0 });
+      const addedUser: User = new User({ name: user.name, score: 0, hasSubmitted: false, votedGif: '' });
       const updatedGame: Game = await userService.addUser(gameId, addedUser);
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: updatedGame,

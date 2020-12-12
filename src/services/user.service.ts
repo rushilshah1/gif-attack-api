@@ -51,6 +51,8 @@ export class UserService {
         $set: {
           "users.$.score": userToUpdate.score,
           "users.$.name": userToUpdate.name,
+          "users.$.hasSubmitted": userToUpdate.hasSubmitted,
+          "users.$.votedGif": userToUpdate.votedGif,
         },
       },
       { new: true }
@@ -69,5 +71,28 @@ export class UserService {
     }
     return updatedGame;
   }
+
+  async clearUserRoundAttributes(gameId: string, users: Array<User>): Promise<Game> {
+    let updatedGame: Game;
+    for (let player of users) {
+      player.hasSubmitted = false;
+      player.votedGif = '';
+      updatedGame = await this.updateUser(gameId, player);
+    }
+    return updatedGame;
+  }
+
+  async markUserSubmission(userId: any, game: Game): Promise<Game> {
+    const submittedUser: User = (<Array<User>>game.users).find((user) => user.id === userId);
+    submittedUser.hasSubmitted = true;
+    return await this.updateUser(game.id, submittedUser);
+  }
+
+  async markUserVotedGif(userId: any, gifId: string, game: Game,): Promise<Game> {
+    const submittedUser: User = (<Array<User>>game.users).find((user) => user.id === userId);
+    submittedUser.votedGif = gifId;
+    return await this.updateUser(game.id, submittedUser);
+  }
+
 }
 export default new UserService();
