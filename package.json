@@ -8,7 +8,7 @@
     "@typegoose/typegoose": "^7.0.0",
     "@types/dotenv": "^8.2.0",
     "apollo-server": "^2.14.2",
-    "apollo-server-express": "^2.13.0",
+    "apollo-server-express": "^2.14.2",
     "asoiaf-api": "^1.0.1",
     "bson": "^4.0.4",
     "cors": "^2.8.5",
