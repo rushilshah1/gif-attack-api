@@ -30,7 +30,7 @@ export class RoundService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
-    clockService.startSubmissionClock(game.id, pubsub, clockService.endSubmission.bind(this));
+    clockService.startSubmissionClock(game.id, pubsub);
     return game;
   }
 

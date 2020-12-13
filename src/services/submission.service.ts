@@ -20,7 +20,7 @@ export class SubmissionService {
         }
         //Clear the timer interval
         clockService.clearGameTimer(gameId);
-        clockService.startVoteClock(game.id, pubsub, clockService.endRound.bind(this));
+        clockService.startVoteClock(game.id, pubsub);
         return game;
     }
 

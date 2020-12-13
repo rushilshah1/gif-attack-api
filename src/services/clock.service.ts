@@ -9,15 +9,15 @@ import submissionService from "./submission.service";
 export class ClockService {
     //Track running intervals for each game so they can be created and cleared accordingly
     private gameIntervalMap: Map<string, NodeJS.Timeout> = new Map();
-    startSubmissionClock(gameId: string, pubsub: PubSub, runoutCallback: (gameId: string, pubsub: PubSub) => Promise<void>) {
+    startSubmissionClock(gameId: string, pubsub: PubSub) {
         let clock: IClock = { gameId: gameId, minutes: +process.env.SUBMISSION_TIMER_MINUTES, seconds: +process.env.SUBMISSION_TIMER_SECONDS };
-        return this.startClock(gameId, pubsub, clock, runoutCallback);
+        return this.startClock(gameId, pubsub, clock, this.endSubmission.bind(this));
 
     }
 
-    startVoteClock(gameId: string, pubsub: PubSub, runoutCallback: (gameId: string, pubsub: PubSub) => Promise<void>) {
+    startVoteClock(gameId: string, pubsub: PubSub) {
         let clock: IClock = { gameId: gameId, minutes: +process.env.VOTE_TIMER_MINUTES, seconds: +process.env.VOTE_TIMER_SECONDS };
-        return this.startClock(gameId, pubsub, clock, runoutCallback);
+        return this.startClock(gameId, pubsub, clock, this.endRound.bind(this));
 
     }
 
@@ -52,7 +52,8 @@ export class ClockService {
         this.gameIntervalMap.set(gameId, interval);
     }
 
-    async endSubmission(gameId: string, pubsub: PubSub): Promise<void> {
+    /* Callback functions after clock ends */
+    private async endSubmission(gameId: string, pubsub: PubSub): Promise<void> {
         logger.info("Timer has run out...submission is over");
         let updatedGame: Game = await submissionService.updateSubmissionStatus(gameId, false, pubsub);
         //If submission is over and no one has submitted, voting cannot take place -> end round
@@ -65,7 +66,7 @@ export class ClockService {
         });
     }
 
-    async endRound(gameId: string, pubsub: PubSub): Promise<void> {
+    private async endRound(gameId: string, pubsub: PubSub): Promise<void> {
         logger.info("Timer has run out...round is over");
         const updatedGame: Game = await roundService.updateRoundStatus(gameId, false);
         pubsub.publish(GAME_STATE_CHANGED, {
