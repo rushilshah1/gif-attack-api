@@ -5,6 +5,7 @@ import * as _ from "lodash";
 import roundService from "./round.service";
 import gameService from "./game.service";
 import userService from "./user.service";
+import submissionService from "./submission.service";
 
 export class GifService {
   async addSubmittedGif(gameId: string, newGif: SubmittedGif, pubsub: PubSub): Promise<Game> {
@@ -23,7 +24,7 @@ export class GifService {
       throw new UserInputError("Invalid game id");
     }
 
-    return await roundService.updateIfSubmissionCompleted(game, pubsub);
+    return await submissionService.updateIfSubmissionCompleted(game, pubsub);
   }
 
   async removeSubmittedGif(gameId: string, deleteGif: SubmittedGif): Promise<Game> {
