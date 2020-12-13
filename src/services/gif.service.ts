@@ -8,8 +8,8 @@ import userService from "./user.service";
 import submissionService from "./submission.service";
 
 export class GifService {
-  async addSubmittedGif(gameId: string, newGif: SubmittedGif, pubsub: PubSub): Promise<Game> {
-    const game: Game = await GameModel.findByIdAndUpdate(
+  async addSubmittedGif(gameId: string, newGif: SubmittedGif, userId: string, pubsub: PubSub): Promise<Game> {
+    let game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
         $push: {
@@ -23,7 +23,7 @@ export class GifService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
-
+    game = await userService.markUserSubmission(userId, game);
     return await submissionService.updateIfSubmissionCompleted(game, pubsub);
   }
 
