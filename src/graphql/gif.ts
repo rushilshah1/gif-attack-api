@@ -3,6 +3,7 @@ import { logger, GAME_STATE_CHANGED } from "../common";
 import { SubmittedGif } from "../models/SubmittedGif";
 import { Game } from "../models/Game";
 import gifService from "../services/gif.service";
+import userService from "../services/user.service";
 
 //content is actually a big object will be stringified and parsed back on the UI to render gif content
 export const typeDefs = gql`
@@ -32,18 +33,18 @@ export const typeDefs = gql`
     isWinner: Boolean!
   }
   extend type Mutation {
-    createGif(gif: AddGifInput!, gameId: ID!): Gif
+    createGif(gif: AddGifInput!, gameId: ID!, userId: ID!): Gif
     removeGif(gif: ModifyGifInput!, gameId: ID!): Gif
     updateGif(gif: ModifyGifInput!, gameId: ID!): Gif
-    voteForGif(gifId: ID!, gameId: ID!): Gif
+    voteForGif(gifId: ID!, gameId: ID!, userId: ID!): Gif
   }
 `;
 
 export const resolvers = {
   Mutation: {
-    async createGif(_, { gif, gameId }, { pubsub }) {
+    async createGif(_, { gif, gameId, userId }, { pubsub }) {
       const newGif: SubmittedGif = new SubmittedGif(gif);
-      const game: Game = await gifService.addSubmittedGif(gameId, newGif);
+      const game: Game = await gifService.addSubmittedGif(gameId, newGif, userId, pubsub);
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: game,
       });
@@ -70,10 +71,11 @@ export const resolvers = {
         (submittedGif: SubmittedGif) => submittedGif.id === gif.id
       );
     },
-    async voteForGif(_, { gifId, gameId }, { pubsub }) {
+    async voteForGif(_, { gifId, gameId, userId }, { pubsub }) {
       const game: Game = await gifService.voteForGif(
         gameId,
-        gifId
+        gifId,
+        userId
       );
       await pubsub.publish(GAME_STATE_CHANGED, {
         gameStateChanged: game,

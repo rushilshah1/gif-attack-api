@@ -1,13 +1,15 @@
 import { Game, GameModel } from "../models/Game";
-import { UserInputError } from "apollo-server";
+import { UserInputError, PubSub } from "apollo-server";
 import { SubmittedGif } from "../models/SubmittedGif";
 import * as _ from "lodash";
 import roundService from "./round.service";
 import gameService from "./game.service";
+import userService from "./user.service";
+import submissionService from "./submission.service";
 
 export class GifService {
-  async addSubmittedGif(gameId: string, newGif: SubmittedGif): Promise<Game> {
-    const game: Game = await GameModel.findByIdAndUpdate(
+  async addSubmittedGif(gameId: string, newGif: SubmittedGif, userId: string, pubsub: PubSub): Promise<Game> {
+    let game: Game = await GameModel.findByIdAndUpdate(
       gameId,
       {
         $push: {
@@ -21,8 +23,8 @@ export class GifService {
     if (!game) {
       throw new UserInputError("Invalid game id");
     }
-
-    return game;
+    game = await userService.markUserSubmission(userId, game);
+    return await submissionService.updateIfSubmissionCompleted(game, pubsub);
   }
 
   async removeSubmittedGif(gameId: string, deleteGif: SubmittedGif): Promise<Game> {
@@ -82,8 +84,9 @@ export class GifService {
     return await roundService.updateIfRoundCompleted(game);
   }
 
-  async voteForGif(gameId: string, gifId: any): Promise<Game> {
-    const currentGame: Game = await gameService.getGameById(gameId);
+  async voteForGif(gameId: string, gifId: any, userId: any): Promise<Game> {
+    let currentGame: Game = await gameService.getGameById(gameId);
+    currentGame = await userService.markUserVotedGif(userId, gifId, currentGame);
     const gifToVoteFor: SubmittedGif = (<Array<SubmittedGif>>currentGame.submittedGifs).find((submittedGif) => submittedGif.id === gifId);
     gifToVoteFor.numVotes += 1;
     return await this.updateSubmittedGif(gameId, gifToVoteFor);

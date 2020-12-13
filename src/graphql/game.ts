@@ -9,6 +9,7 @@ export const typeDefs = gql`
     id: ID!
     users: [User]!
     gameStarted: Boolean!
+    submissionActive: Boolean!
     roundActive: Boolean!
     topic: String!
     roundNumber: Int!
